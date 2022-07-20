@@ -1,0 +1,345 @@
+<!doctype html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<title>American Sleep Dentistry</title>
+	<link rel="shortcut icon" href="ASD_Logo.png" type="image/x-icon">
+	<script src="https://code.jquery.com/jquery-3.5.0.js"></script>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+	<style>
+		.input {
+			height: 50px;
+		}
+
+		@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap');
+
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+			font-family: "Poppins", sans-serif;
+		}
+
+		body {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			min-height: 100vh;
+
+		}
+
+		.drag-area {
+			border: 2px #fff;
+			height: 500px;
+			width: 700px;
+			border-radius: 5px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			flex-direction: column;
+			background: #5256ad;
+		}
+
+		.drag-area.active {
+			border: 2px solid #fff;
+		}
+
+		.drag-area .icon {
+			font-size: 100px;
+			color: #fff;
+		}
+
+		.drag-area header {
+			font-size: 30px;
+			font-weight: 500;
+			color: #fff;
+		}
+
+		.drag-area span {
+			font-size: 25px;
+			font-weight: 500;
+			color: #fff;
+			margin: 10px 0 15px 0;
+		}
+
+		.drag-area button {
+			padding: 10px 25px;
+			font-size: 20px;
+			font-weight: 500;
+			border: none;
+			outline: none;
+			background: #fff;
+			color: #5256ad;
+			border-radius: 5px;
+			cursor: pointer;
+		}
+
+		.drag-area img {
+			height: 100%;
+			width: 100%;
+			object-fit: cover;
+			border-radius: 5px;
+		}
+
+		#login {
+			width: 100%;
+		}
+
+		#choose_file,
+		#submit {
+			margin-top: 20px;
+		}
+
+		#uploadButton {
+			margin-top: 20px;
+		}
+
+		#loaderText,
+		#uploadError ,#processingText{
+			font-weight: bold;
+		}
+
+		#uploadError {
+			color: red;
+			text-align: center;
+		}
+
+		@import url('https://fonts.googleapis.com/css?family=Poppins:400,500,600,700&display=swap');
+
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+			font-family: 'Poppins', sans-serif;
+		}
+
+
+		.circular {
+			height: 100px;
+			width: 100px;
+			position: relative;
+		}
+
+		.circular .inner,
+		.circular .outer,
+		.circular .circle {
+			position: absolute;
+			z-index: 6;
+			height: 100%;
+			width: 100%;
+			border-radius: 100%;
+			box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.2);
+		}
+
+		.circular .inner {
+			top: 50%;
+			left: 50%;
+			height: 80px;
+			width: 80px;
+			margin: -40px 0 0 -40px;
+			background-color: #dde6f0;
+			border-radius: 100%;
+			box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+		}
+
+		.circular .circle {
+			z-index: 1;
+			box-shadow: none;
+		}
+
+		.circular .numb {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			z-index: 10;
+			font-size: 18px;
+			font-weight: 500;
+			color: #4158d0;
+		}
+
+		.circular .bar {
+			position: absolute;
+			height: 100%;
+			width: 100%;
+			background: #fff;
+			-webkit-border-radius: 100%;
+			clip: rect(0px, 100px, 100px, 50px);
+		}
+
+		.circle .bar .progress {
+			position: absolute;
+			height: 100%;
+			width: 100%;
+			-webkit-border-radius: 100%;
+			clip: rect(0px, 50px, 100px, 0px);
+		}
+
+		.circle .bar .progress,
+		.dot span {
+			background: #4158d0;
+		}
+
+		.circle .left .progress {
+			z-index: 1;
+			animation: left 4s linear both;
+		}
+
+		@keyframes left {
+			100% {
+				transform: rotate(180deg);
+			}
+		}
+
+		.circle .right {
+			z-index: 3;
+			transform: rotate(180deg);
+		}
+
+		.circle .right .progress {
+			animation: right 4s linear both;
+			animation-delay: 4s;
+		}
+
+		@keyframes right {
+			100% {
+				transform: rotate(180deg);
+			}
+		}
+
+		.circle .dot {
+			z-index: 2;
+			position: absolute;
+			left: 50%;
+			top: 50%;
+			width: 50%;
+			height: 10px;
+			margin-top: -5px;
+			animation: dot 8s linear both;
+			transform-origin: 0% 50%;
+		}
+
+		.circle .dot span {
+			position: absolute;
+			right: 0;
+			width: 10px;
+			height: 10px;
+			border-radius: 100%;
+		}
+
+		@keyframes dot {
+			0% {
+				transform: rotate(-90deg);
+			}
+
+			50% {
+				transform: rotate(90deg);
+				z-index: 4;
+			}
+
+			100% {
+				transform: rotate(270deg);
+				z-index: 4;
+			}
+		}
+
+		.loader {
+			border: 16px solid #f3f3f3;
+			/* Light grey */
+			border-top: 16px solid #3498db;
+			/* Blue */
+			border-radius: 50%;
+			width: 120px;
+			height: 120px;
+			animation: spin 2s linear infinite;
+		}
+
+		@keyframes spin {
+			0% {
+				transform: rotate(0deg);
+			}
+
+			100% {
+				transform: rotate(360deg);
+			}
+		}
+
+		#login_container {
+			width: 30vw;
+			padding: 30px;
+			display: flex
+		}
+
+		#upload_container {
+			justify-content: center;
+			display: none;
+		}
+        #loading {
+			display: none;
+			height: 100vh;
+			justify-content: center;
+			width: 100vw;
+			align-items: center;
+			flex-direction: column
+		}
+		#backToLogin,#backToUpload{
+			margin-top: 20px;
+			display: none;
+		}
+	</style>
+	<script src="./../adminIndex.js"></script>
+</head>
+
+<body>
+	<div id="login_container" class="container">
+		<form id="login">
+			<!-- Email input -->
+			<h3 class="form-control" style="text-align:center"><b>Admin Login</b></h3>
+			<div class="form-outline mb-4">
+				<label class="form-label" for="form2Example1">Email</label>
+				<input type="email" id="email" class="form-control input" placeholder="Enter Email address" required />
+				<span style="color: red;" id="emailError"></span>
+			</div>
+
+			<!-- Password input -->
+			<div class="form-outline mb-4">
+				<label class="form-label" for="form2Example2">Password</label>
+				<input type="password" id="password" class="form-control input" placeholder="Enter Password" required />
+				<span style="color: red;" id="passwordError"></span>
+			</div>
+
+			<!-- Submit button -->
+			<button id="submit" type="submit" class="btn btn-success btn-block input">Sign in</button>
+		</form>
+	</div>
+	<div id="upload_container" class="container">
+		<form class="upload">
+			<h2 id="uploadError"></h2>
+			<div class="drag-area">
+				<div class="icon"><i class="fas fa-cloud-upload-alt"></i></div>
+				<header>Drag & Drop to Upload File</header>
+				<span>OR</span>
+				<button>Browse File</button>
+				<input id="choose_file" class="btn btn-success" type="file" hidden accept="text/html,.html" required>
+			</div>
+			<button id="uploadButton" type="submit" class="btn btn-success btn-block input">Submit</button>
+		</form>
+	</div>
+	<div id="loading">
+		<div>
+			<h2 id="loaderText"></h2>
+		</div>
+		<div>
+			<h2 id="processingText"></h2>
+		</div>
+		<div id="cssloader" class="loader"></div>
+		<button type="button" class="btn btn-success mt-6" id="backToLogin" >Back to Login.</button>
+		<button type="button" class="btn btn-success mt-6" id="backToUpload" >Back to File Upload.</button>
+
+	</div>
+</body>
+
+</html>
