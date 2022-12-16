@@ -10,6 +10,8 @@
 	<script src="https://code.jquery.com/jquery-3.5.0.js"></script>
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.1.0/css/font-awesome.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 	<style>
 		/*! normalize.css v2.1.0 | MIT License | git.io/normalize */
 		@import url("https://static.slid.es/fonts/v3/montserrat/montserrat.css");
@@ -8910,16 +8912,6 @@
 			</div>
 		</section>
 		<section data-background-color="rgb(238, 238, 238)" data-id="5a82c6944e102663f18b8e1299f97346">
-			<div class="sl-block" data-block-type="text" style="width: 1106px; left: 94px; top: 481.5px; height: auto;"
-				data-block-id="1dd18a823c44f13c00b7e7959789579a">
-				<div class="sl-block-content" data-placeholder-tag="h1" data-placeholder-text="Title Text"
-					style="z-index: 13; color: rgb(26, 101, 158); transition-duration: 0.6s; transition-delay: 0.6s;"
-					data-animation-type="fade-in" data-has-custom-html="">
-					<input type="password" style="text-align:center" class="password" placeholder="Password" onkeypress="return onlyNumberKey(event)" pattern="\d*">
-					<span style="color: red;" class="passwordError"></span>
-					<span style="color: green;" class="passwordSuccess"></span>
-				</div>
-			</div>
 			<div class="sl-block" data-block-type="shape" data-name="shape-590ca3"
 				style="width: 1280px; height: 720px; left: 0px; top: 0px;" data-locked="true"
 				data-block-id="d5ab79c5e58bc3c6ca898235e8ec8a46">
@@ -8971,7 +8963,8 @@
 				<div class="sl-block-content" data-placeholder-tag="h1" data-placeholder-text="Title Text"
 					style="z-index: 16; color: rgb(26, 101, 158); transition-duration: 0.6s; transition-delay: 0.6s;"
 					data-animation-type="fade-in" data-has-custom-html="">
-					<input type="password" style="text-align:center" class="password" placeholder="Password" onkeypress="return onlyNumberKey(event)" pattern="\d*">
+					<input type="password" style="text-align:center" class="password" placeholder="Password" onkeypress="return onlyNumberKey(event)"/>
+					<i class="fa fa-eye togglePassword" style="margin-left: -50px; cursor: pointer;"></i>
 					<span style="color: red;" class="passwordError"></span>
 					<span style="color: green;" class="passwordSuccess"></span>
 				</div>
@@ -8981,7 +8974,7 @@
 				style="height: auto; width: 173px; left: 560.5px; top: 576px;">
 				<div class="sl-block-content" data-placeholder-tag="p" data-placeholder-text="Text"
 					style="z-index: 17; padding: 5px; font-size: 70%;"
-					data-has-custom-html=""><button class="btn btn-success submit">submit</button></div>
+					data-has-custom-html=""><button class="btn btn-success submit" style="text-align:start;text-transform:uppercase;">submit</button></div>
 			</div>
 		</section>
 		<section data-background-color="rgb(238, 238, 238)" data-id="85c29fc89bd8f3b6e257d73af85ca007">
@@ -15959,8 +15952,7 @@
 							class="sleep_doctor_practice_address"><strong>             Sleep Doctor's
 								Address:</strong>    [[sleep_doctor_practice_address]]<br>
 							                                                             
-							[[sleep_doctor_practice_city]],             
-							                                                                           
+							[[sleep_doctor_practice_city]],
 							[[sleep_doctor_practice_state]]          </span></p>
 
 					<p style="text-align:left"><span style="text-align:start" class="sleep_doctor_practice_zipcode">   
@@ -16636,9 +16628,7 @@
 
 					<p style="text-align:left"><span style="text-align:start" class="cpapSupplyCompany_practice_state"> 
 							                                                 
-							     [[cpapSupplyCompany_practice_state]]                                                   
-							             
-							       [[cpapSupplyCompany_practice_zipcode]]</span></p>
+							     [[cpapSupplyCompany_practice_state]] [[cpapSupplyCompany_practice_zipcode]]</span></p>
 
 					<p style="text-align:left"><strong
 							style='font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-size: 27.6px; font-family: "Open Sans", sans-serif; color: rgb(0, 101, 158); text-align: right;'>CPAP
@@ -17192,6 +17182,7 @@
 		});
 	</script>
 	<script src="/socket.io/socket.io.js"></script>
-	<script src="./../index.js"></script>
+    <!--<script src="./../index.js"></script>  -->
+	<script src="plugin/index.js"></script> 
 </body>
 </html>

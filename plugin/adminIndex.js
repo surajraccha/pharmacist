@@ -1,9 +1,54 @@
 'use-strict';
+
+var openFile = function(event) {
+    var input = event.target;
+
+    var reader = new FileReader();
+    reader.onload = function(){
+      var text = reader.result;
+      if(text){
+        let parser = new DOMParser();
+        let doc = parser.parseFromString(text, 'text/html');
+        //console.log(doc);
+        if(doc && doc.body && doc.body.classList[0] === "reveal-viewport"){
+             doc.querySelectorAll('.slides > *').forEach(function(node) {
+                console.log(">>>",node.textContent.match(/\[\[(.*?)\]\]/g));
+            });
+            //console.log(doc);
+            // getTextNodesIn(doc.body,function(textnode){
+            //     console.table(textnode);
+            // })
+        }else{
+            //wrong html uploaded
+        }
+      }
+    };
+    reader.readAsText(input.files[0]);
+};
+
+function getTextNodesIn(elem, opt_fnFilter) {
+    var textNodes = [];
+    if (elem) {
+      for (var nodes = elem.childNodes, i = nodes.length; i--;) {
+        var node = nodes[i], nodeType = node.nodeType;
+        if (nodeType == 3) {
+          if (!opt_fnFilter || opt_fnFilter(node, elem)) {
+            textNodes.push(node);
+          }
+        }
+        else if (nodeType == 1 || nodeType == 9 || nodeType == 11) {
+          textNodes = textNodes.concat(getTextNodesIn(node, opt_fnFilter));
+        }
+      }
+    }
+    return textNodes;
+  }
+
 document.addEventListener("DOMContentLoaded", function () {
-    const API_URL = "http://localhost:4000";
+    const API_URL = "http://localhost:4002";
 
    
-    /////////////////////////////////////////File Processing///////////////////////////////
+    //-------------------------------------------File Processing--------------------------------------------------//
     //selecting all required elements
     const dropArea = document.querySelector(".drag-area"),
         dragText = dropArea.querySelector("header"),
@@ -56,7 +101,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    ////////////////////////EventListeners//////////////////////////////
+    /*----------------------EventListeners-------------------------------*/
 
     document.getElementById("login").addEventListener("submit", function (e) {
         var email = document.getElementById("email").value;
@@ -83,12 +128,14 @@ document.addEventListener("DOMContentLoaded", function () {
         e.preventDefault();
     });
 
+
     document.querySelector('.upload').addEventListener("submit", function (e) {
         e.preventDefault();
-        console.log("file:"+e.target);
-        document.getElementById("upload_container").style.display="none";
-        document.getElementById("loading").style.display = "flex";
-        document.getElementById("loaderText").innerHTML="Uploading File...";
+        // console.log("file:"+e.target);
+        // document.getElementById("upload_container").style.display="none";
+        // document.getElementById("loading").style.display = "flex";
+        // document.getElementById("processingText").innerHTML="Processing File...";
+        // document.getElementById("cssloader").style.display="flex";
         let file = document.getElementById("choose_file").files[0];
         console.log("file>>>",file);
         let formData = new FormData();
@@ -96,41 +143,42 @@ document.addEventListener("DOMContentLoaded", function () {
         formData.append('file', file);
         let fileReader = new FileReader(); 
         console.log("file reader>>",fileReader.readAsText(file));
-        fetch(`${API_URL}/upload_file`, {
-            method: 'POST',
-            body: formData
-        })
-        .then(resp => resp.json())
-        .then(data => {
-                if (data.errors) {
-                    document.getElementById("loaderText").textContent="Error,Unable to upload File";
-                }
-                else {
-                    document.getElementById("loaderText").innerHTML = "File Uploaded!";
-                    document.getElementById("processingText").innerHTML="Processing File...";
-                    fetch(`${API_URL}/process_file`, {
-                        method: 'GET'
-                    })
-                    .then(res=>res.json())
-                    .then(res=>{
-                        if(res.code === 200){
-                            document.getElementById("backToLogin").style.display="block";
-                        }else{
-                            document.getElementById("backToUpload").style.display="block";
-                        }
+    
+        // document.getElementById("processingText").innerHTML = "File Processing Done!";
+        // document.getElementById("loaderText").innerHTML = "Uploading File...";
+        
+    //     fetch(`${API_URL}/upload_file`, {
+    //         method: 'POST',
+    //         body: formData
+    //     })
+    //     .then(resp => resp.json())
+    //     .then(data => {
+    //                 if(data.code === 200){
+    //                     document.getElementById("loaderText").innerHTML = "File Uploaded!";
+    //                     document.getElementById("backToLogin").style.display="block";
+    //                 }else{
+    //                     document.getElementById("loaderText").textContent="Error,Unable to upload File";
+    //                 }
+    //                 document.getElementById("cssloader").style.display="none";
+
+    //                 // fetch(`${API_URL}/process_file`, {
+    //                 //     method: 'GET'
+    //                 // })
+    //                 // .then(res=>res.json())
+    //                 // .then(res=>{
                         
-                        document.getElementById("processingText").innerHTML = res.message;                       
-                        document.getElementById("cssloader").style.display="none";
-                    })
-                    .catch(err=>{
-                        console.log("processing error"+err);
-                        document.getElementById("processingText").innerHTML = res.message;
-                        document.getElementById("backToLogin").style.display="block";
-                        document.getElementById("cssloader").style.display="none";
-                    });
-                }
-        })
-    });
+                        
+    //                 //     document.getElementById("processingText").innerHTML = res.message;                       
+    //                 //     document.getElementById("cssloader").style.display="none";
+    //                 // })
+    //                 // .catch(err=>{
+    //                 //     console.log("processing error"+err);
+    //                 //     document.getElementById("processingText").innerHTML = err.message;
+    //                 //     document.getElementById("backToLogin").style.display="block";
+    //                 //     document.getElementById("cssloader").style.display="none";
+    //                 // });
+    //     })
+     });
  
     document.getElementById("backToLogin").addEventListener("click", function (e) {
         document.getElementById("loading").style.display = "none";

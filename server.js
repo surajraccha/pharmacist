@@ -9,6 +9,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require("path");
 const htmlParser = require('node-html-parser');
+var CryptoJS = require("crypto-js");
 
 dotenv.config();
 let app = express();
@@ -27,7 +28,8 @@ let server = http.createServer(app);
 let loginCredentials = {
     "username": "suraj@christiansentechsolutions.com",
     "password": "Suraj@CTS"
-}
+};
+let domainDetails = {};
 
 io = io(server);
 
@@ -35,8 +37,6 @@ let opts = {
     port: process.env.PORT || 4002,
     baseDir: process.cwd()
 };
-let domainPlaceholders = {};
-let domainSlideCurrentState = {};
 
 //Configuration for Multer
 const multerStorage = multer.diskStorage({
@@ -70,16 +70,18 @@ io.on('connection', socket => {
         if (typeof data.secret == 'undefined' || data.secret == null || data.secret === '') return;
         if (createHash(data.secret) === data.socketId) {
             data.secret = null;
-            domainSlideCurrentState[data.domain] = data.state;
+            domainDetails[data.domain] = {"currentSlideState":data.state};
             socket.broadcast.emit(data.socketId, data);
         };
     });
 
     socket.on('fetch-data', (data, callback) => {
-        if (domainPlaceholders.hasOwnProperty(data.domain)) {
+        if (domainDetails.hasOwnProperty(data.domain)) {
             callback({
-                data: domainPlaceholders[data.domain],
-                currentSlideState: domainSlideCurrentState[data.domain],
+                data: domainDetails[data.domain]["placeholders"],
+                currentSlideState: domainDetails[data.domain]["currentSlideState"],
+                domainSecurity : domainDetails[data.domain]["domainSecurity"],
+                token: domainDetails[data.domain]["token"],
                 status: true
             })
         } else {
@@ -128,37 +130,64 @@ app.get("/token", (req, res) => {
 
 
 app.post("/navigate-slide", (req, res) => {
-    console.log("AFU request >>>", req.body);
     var data = req.body;
-    console.log(isNaN(parseInt(data.slide)));
 
-    if (typeof data.slide == 'undefined' || data.slide == null || data.slide === '' || isNaN(parseInt(data.slide))) return res.status(400).send({ message: 'error with slide number!' });
+    if (typeof data.slide == 'undefined' || data.slide == null || data.slide === '') return res.status(400).send({ message: 'error with slide number!' });
 
     if (typeof data.domain == 'undefined' || data.domain == null || data.domain === '') return res.status(400).send({ message: 'error with domain assigned to agent!' });
 
     data.domain = data.domain.replace('https://', '').replace("www.","");
     data.domain = data.domain.replace('.com', '');
-    console.log("domain>>", data.domain);
+
+    var indexh = null;
+
+    if(domainDetails[data.domain] && domainDetails[data.domain]["currentSlideState"])
+     indexh = parseInt(domainDetails[data.domain]["currentSlideState"]["indexh"]);
+    console.log("indexh>>",indexh);
+    switch(data.slide){
+        case "next": indexh = indexh+1;
+            break;
+        case "previous": indexh = indexh > 0  ? indexh-1 : indexh;
+        break;
+        default :
+          indexh = parseInt(data.slide)-1;
+    }
 
     data.state = {
-        indexh: parseInt(data.slide) - 1,
+        indexh: indexh != null ? indexh : 1,
         indexv: 0,
         overview: false,
         paused: false
     };
 
     //data.domain = 'localhost';
-    domainSlideCurrentState[data.domain] = data.state;
-    domainPlaceholders[data.domain] = data.placeholders;
-    console.log("domainPlaceholders::",domainPlaceholders[data.domain]);
-    console.log('state>>>', data.state);
+    var domainObject = domainDetails[data.domain] || {};
+    
+    domainObject["currentSlideState"] = data.state;
+    domainObject["placeholders"] = data.placeholders;
+   // console.log("data.secured>>>",data.secured);
+    if(data.secured){
+      domainObject["domainSecurity"] = data.secured; 
+    }else if(domainDetails[data.domain] && !domainDetails[data.domain].hasOwnProperty("domainSecurity")){
+        domainDetails[data.domain]["domainSecurity"] = false;
+    } 
+    domainObject["token"] = CryptoJS.AES.encrypt(data.orderId,data.domain).toString();
+
+  //  console.log(data.orderId,data.domain, domainObject["token"]);
+    domainDetails[data.domain] = domainObject;
+
+    if(domainDetails[data.domain] && domainDetails[data.domain].hasOwnProperty("domainSecurity")){
+        data.domainSecurity = domainDetails[data.domain]["domainSecurity"];
+    }
+    data.token = domainObject["token"];
+    console.log('domainDetails>>>', domainDetails[data.domain]["domainSecurity"]);
     io.emit('change-slide', data);
     res.send({ status: 'ok', state: data.state });
 });
 
 
 app.post('/start-stop-presentation', (req, res) => {
-    console.log("req>>>", req);
+    //console.log("req>>>", req);
     var data = req.body;
     console.log("data>>>", data);
     data.state = {
@@ -173,18 +202,26 @@ app.post('/start-stop-presentation', (req, res) => {
 
     data.domain = data.domain.replace('https://', '').replace("www.","");
     data.domain = data.domain.replace('.com', '');
-    console.log("domain>>", data.domain);
-
-    domainSlideCurrentState[data.domain] = data.state;
-    domainPlaceholders[data.domain] = data.placeholders;
- //   console.log("domainPlaceholders::",domainPlaceholders[data.domain]);
-
+ //   console.log("domain>>", data.domain);
+    var domainObject =  domainDetails[data.domain] || {};
+    if(data.secured){
+        domainObject["domainSecurity"] = data.secured; 
+        data["domainSecurity"] =  data.secured;
+      }else {
+        domainObject["domainSecurity"] = false;
+        data["domainSecurity"] =  false;
+      } 
+    domainObject["currentSlideState"] = data.state;
+    domainObject["placeholders"] = data.placeholders;
+    domainObject["token"] = CryptoJS.AES.encrypt(data.orderId,data.domain).toString();
+    domainDetails[data.domain] = domainObject;
+    data.token = domainObject["token"];
+    
     if (data.status === 'start') {
         console.log("inside start");
         io.emit('change-slide', data);
     } else {
-        delete domainPlaceholders[data.domain];
-        delete domainSlideCurrentState[data.domain];
+        delete domainDetails[data.domain];
         console.log("inside stop");
         io.emit('disconnect-client', data);
     }
@@ -193,7 +230,7 @@ app.post('/start-stop-presentation', (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-    console.log("login req>>" + req.body.email);
+   // console.log("login req>>" + req.body.email);
     var status = null, code = null;
     if (req.body) {
         var email = req.body.email;
@@ -222,17 +259,16 @@ app.post('/upload_file', upload.single('file'), async function (req, res) {
     const title = req.body.title;
     const file = req.file;
 
-    console.log(title);
-    console.log(file);
+    //console.log(title);
+   // console.log(file);
     try {
-        const newFile = await File.create({
-            name: req.file.filename,
-        });
         res.status(200).json({
             status: "success",
             message: "File created successfully!!",
+            code:200
         });
     } catch (error) {
+        console.log(error);
         res.json({
             error,
         });
@@ -240,26 +276,26 @@ app.post('/upload_file', upload.single('file'), async function (req, res) {
 
 });
 
-app.get("/process_file", (req, res) => {
-    console.log("process file....");
+// app.get("/process_file", (req, res) => {
+//     console.log("process file....");
 
-  var process = processFile();
+//   var process = processFile();
  
-  if(process){
-    res.status(200).json({
-        status: "success",
-        code:200,
-        message: "File Processed successfully!",
-    });
-  }else{
-    res.status(200).json({
-        status: "fail",
-        code:101,
-        message: "File Processing Failed,Please Upload Correct file!",
-    });
-  }
+//   if(process){
+//     res.status(200).json({
+//         status: "success",
+//         code:200,
+//         message: "File Processed successfully!",
+//     });
+//   }else{
+//     res.status(200).json({
+//         status: "fail",
+//         code:101,
+//         message: "File Processing Failed,Please Upload Correct file!",
+//     });
+//   }
     
-});
+// });
 
 let createHash = secret => {
     let cipher = crypto.createCipher('blowfish', secret);
@@ -278,18 +314,23 @@ server.listen(opts.port || null//,function() {
 // });
 );
 
- function processFile(){
-    try {
-        const data = fs.readFileSync(opts.baseDir + '/html/index.html', 'utf8');
-      //  console.log("file content::"+data);
-        const dom = htmlParser.parse(data);
-        console.log("slide node"+dom.querySelector('.slides').attributes);
+//  function processFile(){
+//     try {
+//         const data = fs.readFileSync(opts.baseDir + '/html/index.html', 'utf8');
 
-    } catch (err) {
-        console.error(err);
-    }
-    return true;
- }
+//         const dom = htmlParser.parse(data);
+
+//         if(dom.querySelector('.slides') == null){
+//             return false;
+//         }
+        
+
+//         console.log("dom>>>"+dom);
+//     } catch (err) {
+//         console.error(err);
+//     }
+//     return true;
+//  }
 
 let brown = '\033[33m',
     green = '\033[32m',

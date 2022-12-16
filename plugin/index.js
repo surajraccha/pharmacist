@@ -1,18 +1,15 @@
-function onlyNumberKey(evt) {
-  // Only ASCII character in that range allowed
-  var ASCIICode = (evt.which) ? evt.which : evt.keyCode
-  if ((ASCIICode < 48 || ASCIICode > 57))
-      return false;
-  return true;
-}
+///backup///
 
 const socketDomain = "http://localhost:4002/";
 //const socketDomain = "https://"+ window.location.hostname;
 //test Server
-const API_URL = "https://dialertest.americansleepdentistry.com/communication-api/update-secure-slide-login";
+//const API_URL = "https://dialertest.americansleepdentistry.com/communication-api/update-secure-slide-login";
 
 //Live Server
-//const API_URL = "https://dialer.americansleepdentistry.com/communication-api/update-secure-slide-login";
+const API_URL = "https://dialer.americansleepdentistry.com/communication-api/update-secure-slide-login";
+
+//local server
+//const API_URL = "http://localhost:8081/update-secure-slide-login";
 
 const params = new URLSearchParams(window.location.search);
 const control = params.get('m') ? true : false;
@@ -20,15 +17,6 @@ var domain = window.location.hostname;
 domain = domain.replace('www.', '');
 domain = domain.replace('.com', '');
 console.log(domain);
-
-// logic to add script tags dynamically
-// var scriptSrc =["https://code.jquery.com/jquery-3.5.0.js","http://localhost:4000/socket.io/socket.io.js"];
-// for(var i=0;i<scriptSrc.length;i++){
-//   var s = document.createElement("script");
-//   s.type = "text/javascript";
-//   s.src = scriptSrc[i];
-//   document.head.appendChild(s);
-// }
 
 Reveal.initialize({
   width: SLConfig.deck.width,
@@ -78,19 +66,21 @@ Reveal.initialize({
   // Don't forget to add the dependencies
   dependencies: [
     { src: `/socket.io/socket.io.js`, async: true },
+    //  {
+    //    src: params.get('m') ?
+    //      './../master.js' :
+    //      './../client.js', async: true
+    //  }
     {
       src: params.get('m') ?
-        './../master.js' :
-        './../client.js', async: true
+        'plugin/master.js' :
+        'plugin/client.js', async: true
     }
   ]
 });
 
-//////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////////
 document.addEventListener("DOMContentLoaded", function () {
- 
+
   console.log("body classlist::", document.body.classList);
   var cloneBody = $('body').clone().find('script').remove().end();
   const placeholders = cloneBody.text().match(/\[\[(.*?)\]\]/g);
@@ -129,22 +119,58 @@ document.addEventListener("DOMContentLoaded", function () {
 
   socket.emit('fetch-data', { socketId: multiplex.id, domain: domain }, function (response) {
     if (response.status) {
+      if (response.domainSecurity == true ){
+        if (!localStorage.getItem("password") || localStorage.getItem("password") != CryptoJS.AES.decrypt(response.token, domain).toString(CryptoJS.enc.Utf8)) {
+          Reveal.setState({
+            indexh: 1,
+            indexv: 0,
+            overview: false,
+            paused: false
+          });
+          return;
+        }
+      }else if(response.domainSecurity == null || response.domainSecurity == undefined){
+        Reveal.setState({
+          indexh: 0,
+          indexv: 0,
+          overview: false,
+          paused: false
+        });
+        return;
+      }
+
       document.getElementsByClassName("personal_information_first_last_name")[0].style.display = "contents";
       replacePlaceholders(response.data);
       Reveal.setState(response.currentSlideState);
-      if(!localStorage.getItem("orderId") && response.data && response.data.order_id){
-        localStorage.setItem("orderId",response.data.order_id);
-      }
     }
   });
-
 
   socket.on('change-slide', function (data) {
     if (data.socketId !== socketId) { return; }
     if (data.domain !== domain) { return; }
 
-    if (data.orderId && !localStorage.getItem("orderId")) {
-      localStorage.setItem("orderId", data.orderId);
+    if (data.token && !localStorage.getItem("token")) {
+      localStorage.setItem("token", data.token);
+    }
+    
+    if (data.domainSecurity == true && data.state && data.state.indexh > 1){
+      if (!localStorage.getItem("password") || localStorage.getItem("password") != CryptoJS.AES.decrypt(data.token, domain).toString(CryptoJS.enc.Utf8)) {
+        Reveal.setState({
+          indexh: 1,
+          indexv: 0,
+          overview: false,
+          paused: false
+        });
+        return;
+      }
+    }else if(data.domainSecurity == null || data.domainSecurity == undefined){
+      Reveal.setState({
+        indexh: 0,
+        indexv: 0,
+        overview: false,
+        paused: false
+      });
+      return;
     }
 
     document.getElementsByClassName("personal_information_first_last_name")[0].style.display = "contents";
@@ -152,52 +178,62 @@ document.addEventListener("DOMContentLoaded", function () {
     Reveal.setState(data.state);
   });
 
-
   socket.on('disconnect-client', function (data) {
     if (data.socketId !== socketId) { return; }
 
     if (data.domain !== domain) { return; }
-    localStorage.removeItem("orderId");
     document.getElementsByClassName("personal_information_first_last_name")[0].style.display = "none";
     if (data.state) {
       Reveal.setState(data.state);
     }
 
-  })
+    document.getElementsByClassName("passwordSuccess")[0].innerHTML = "";
+    document.getElementsByClassName("passwordError")[0].innerHTML = "";
+    document.getElementsByClassName("submit")[0].style.display = "inline";
+    document.getElementsByClassName("password")[0].value = null;
+    document.getElementsByClassName("password")[0].style.display = "inline";
+    document.getElementsByClassName("togglePassword")[0].style.display = "inline";
 
+    localStorage.removeItem("password");
+    localStorage.removeItem("token");
+
+  })
 
   //Replace Placeholder Logic 
 
   function replacePlaceholders(placeholders) {
+    if (placeholders) {
+      var tempPlaceholder = null, innerHTMLList = null;
 
-    var tempPlaceholder = null, innerHTMLList = null;
+      for (var i in HTMLPlaceholderClasses) {
+        tempPlaceholder = HTMLPlaceholderClasses[i];
+        innerHTMLList = html_placeholder_class_and_innerHTML_object[tempPlaceholder];
+        if (innerHTMLList !== null) {
+          for (var j = 0; j < innerHTMLList.length; j++) {
+            var tempText = innerHTMLList[j].match(/\[\[(.*?)\]\]/g), text = innerHTMLList[j], value = null;
 
-    for (var i in HTMLPlaceholderClasses) {
-      tempPlaceholder = HTMLPlaceholderClasses[i];
-      innerHTMLList = html_placeholder_class_and_innerHTML_object[tempPlaceholder];
-      if (innerHTMLList !== null) {
-        for (var j = 0; j < innerHTMLList.length; j++) {
-          var tempText = innerHTMLList[j].match(/\[\[(.*?)\]\]/g), text = innerHTMLList[j], value = null;
-
-          if (tempText && document.getElementsByClassName(tempPlaceholder)) {
-            for (var tempItr = 0; tempItr < tempText.length; tempItr++) {
-              tempText[tempItr] = tempText[tempItr].replace("[[", "").replace("]]", "");
-              if (placeholders.hasOwnProperty(tempText[tempItr])) {
-                value = placeholders[tempText[tempItr]] != null && placeholders[tempText[tempItr]] !== "" ? placeholders[tempText[tempItr]] : "[Data Not Available]";
-                if (/^[$]/g.test(value)) {
-                  value = value.replace(/\.00$/, '');
+            if (tempText && document.getElementsByClassName(tempPlaceholder)) {
+              for (var tempItr = 0; tempItr < tempText.length; tempItr++) {
+                tempText[tempItr] = tempText[tempItr].replace("[[", "").replace("]]", "");
+                if (placeholders.hasOwnProperty(tempText[tempItr])) {
+                  value = placeholders[tempText[tempItr]] != null && placeholders[tempText[tempItr]] !== "" ? placeholders[tempText[tempItr]] : "[Data Not Available]";
+                  if (/^[$]/g.test(value)) {
+                    value = value.replace(/\.00$/, '');
+                  }
+                } else {
+                  value = "[Placeholder Not Available]";
                 }
-              } else {
-                value = "[Placeholder Not Available]";
+                text = text.replace(`[[${tempText[tempItr]}]]`, value);
               }
-              text = text.replace(`[[${tempText[tempItr]}]]`, value);
+              document.getElementsByClassName(tempPlaceholder)[j].innerHTML = text;
+              // console.log(tempPlaceholder, "::", text);
             }
-            document.getElementsByClassName(tempPlaceholder)[j].innerHTML = text;
-            // console.log(tempPlaceholder, "::", text);
           }
         }
+        BrowserDepedancy();
       }
-      BrowserDepedancy();
+    } else {
+      location.reload(true);
     }
   }
 
@@ -222,34 +258,30 @@ document.addEventListener("DOMContentLoaded", function () {
 
   //EventListener functions
   var element = document.getElementsByClassName("password");
-  element[1].addEventListener('keypress', function (event) {
+  element[0].addEventListener('keypress', function (event) {
     if (event.key === "Enter") {
+      checkSecureLogin(element);
       event.preventDefault();
-      if (localStorage.getItem("orderId") === event.target.value) {
-        checkSecureLogin(element);
-      } else {
-        document.getElementsByClassName("passwordError")[0].innerHTML = "<br>Please Enter Correct Password!";
-      }
-      element[1].value = null;
-    }else{
-      var charCode = (event.which) ? event.which : event.keyCode
-	    if ((charCode < 48 || charCode > 57)){
-        
-      }
     }
   });
 
- 
   document.getElementsByClassName("submit")[0].addEventListener('click', function () {
-    if (localStorage.getItem("orderId") === element[1].value) {
-      checkSecureLogin(element);
-    } else {
-      document.getElementsByClassName("passwordError")[0].innerHTML = "<br>Please Enter Correct Password!";
-    }
-    element[1].value = null;
+    checkSecureLogin(element);
   });
 
   function checkSecureLogin(element) {
+    // console.log("token>>", CryptoJS.AES.decrypt(localStorage.getItem("token"),domain).toString(CryptoJS.enc.Utf8)," ",localStorage.getItem("token"));
+    var token = localStorage.getItem("token");
+    console.log("token>>>", token);
+    if (!token || token == null || token == "") {
+      location.reload(true);
+      return;
+    }
+    if (element[0].value == "" || element[0].value == null || element[0].value != CryptoJS.AES.decrypt(token, domain).toString(CryptoJS.enc.Utf8)) {
+      document.getElementsByClassName("passwordError")[0].innerHTML = "<br>Invalid Password!";
+      element[0].value = null;
+      return;
+    }
     fetch(API_URL, {
       method: 'POST',
       headers: {
@@ -257,24 +289,50 @@ document.addEventListener("DOMContentLoaded", function () {
         // 'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: JSON.stringify({
-        "orderId": localStorage.getItem("orderId"),
+        "orderId": element[0].value,
         "securedSlidesLoggedIn": true
       })
-    })
+    }).then(res => res.json())
       .then(res => {
         //console.log(res);
-        document.getElementsByClassName("passwordError")[0].innerHTML = "";
-        document.getElementsByClassName("passwordSuccess")[0].innerHTML = "<br><b>Login Successful!</b>";
-        for (var i = 0; i < element.length; i++) {
-          element[i].style.display = "none";
+        if (res.status == 200) {
+          document.getElementsByClassName("passwordError")[0].innerHTML = "";
+          document.getElementsByClassName("passwordSuccess")[0].innerHTML = "<br><b>Login Successful!</b>";
+          document.getElementsByClassName("submit")[0].style.display = "none";
+          element[0].style.display = "none";
+          document.getElementsByClassName("togglePassword")[0].style.display = "none";
+          localStorage.setItem("password", element[0].value);
+        } else {
+          document.getElementsByClassName("passwordError")[0].innerHTML = "<br>Invalid Password!";
+          element[0].value = null;
         }
-        document.getElementsByClassName("submit")[0].style.display = "none";
       })
       .catch(err => {
-        console.log(err);
-        document.getElementsByClassName("passwordError")[0].innerHTML = "<br>Please Enter Correct Password!";
+        document.getElementsByClassName("passwordError")[0].innerHTML = "<br>Invalid Password!";
+        element[0].value = null;
       });
   }
 
 });
-window.onlyNumberKey = onlyNumberKey
+
+function onlyNumberKey(evt) {
+  // Only ASCII character in that range allowed
+  var ASCIICode = (evt.which) ? evt.which : evt.keyCode
+  if ((ASCIICode < 48 || ASCIICode > 57))
+    return false;
+  return true;
+}
+
+window.onlyNumberKey = onlyNumberKey;
+
+const togglePassword = document.querySelectorAll('.togglePassword');
+const password = document.querySelectorAll('.password');
+if(togglePassword != null && togglePassword.length > 0){
+  togglePassword[0].addEventListener('click', function (e) {
+    // toggle the type attribute
+    const type = password[0].getAttribute('type') === 'password' ? 'text' : 'password';
+    password[0].setAttribute('type', type);
+    // toggle the eye slash icon
+    this.classList.toggle('fa-eye-slash');
+  });
+}
