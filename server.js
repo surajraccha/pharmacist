@@ -180,8 +180,10 @@ app.post("/navigate-slide", (req, res) => {
         data.domainSecurity = domainDetails[data.domain]["domainSecurity"];
     }
     data.token = domainObject["token"];
-    console.log('domainDetails>>>', domainDetails[data.domain]["domainSecurity"]);
+    console.log('navigate-slide>>>domainDetails>>>domainSecurity>>>>', domainDetails[data.domain]["domainSecurity"]);
+    // console.log('navigate-slide>>>domainDetails>>>', domainDetails[data.domain]);
     io.emit('change-slide', data);
+    res.header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type");
     res.send({ status: 'ok', state: data.state });
 });
 
@@ -189,7 +191,7 @@ app.post("/navigate-slide", (req, res) => {
 app.post('/start-stop-presentation', (req, res) => {
     //console.log("req>>>", req);
     var data = req.body;
-    console.log("data>>>", data);
+   // console.log("data>>>", data);
     data.state = {
         indexh: 0,
         indexv: 0,
@@ -225,6 +227,8 @@ app.post('/start-stop-presentation', (req, res) => {
         console.log("inside stop");
         io.emit('disconnect-client', data);
     }
+    //console.log('start-stop-presentation>>>domainDetails>>>domainSecurity>>>>', domainDetails[data.domain]["domainSecurity"]);
+   //console.log('start-stop-presentation>>>domainDetails>>>', domainDetails[data.domain]);
     res.header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type");
     res.send({ status: 'ok' });
 });
