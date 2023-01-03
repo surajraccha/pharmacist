@@ -1,7 +1,7 @@
 ///backup///
 
-const socketDomain = "http://localhost:4002/";
-//const socketDomain = "https://"+ window.location.hostname;
+//const socketDomain = "http://localhost:4002/";
+const socketDomain = "https://"+ window.location.hostname;
 //test Server
 //const API_URL = "https://dialertest.americansleepdentistry.com/communication-api/update-secure-slide-login";
 
@@ -66,31 +66,34 @@ Reveal.initialize({
   // Don't forget to add the dependencies
   dependencies: [
     { src: `/socket.io/socket.io.js`, async: true },
-    //  {
-    //    src: params.get('m') ?
-    //      './../master.js' :
-    //      './../client.js', async: true
-    //  }
-    {
-      src: params.get('m') ?
-        'plugin/master.js' :
-        'plugin/client.js', async: true
-    }
+     {
+       src: params.get('m') ?
+         './../master.js' :
+         './../client.js', async: true
+     }
+    // {
+    //   src: params.get('m') ?
+    //     'plugin/master.js' :
+    //     'plugin/client.js', async: true
+    // }
   ]
 });
 
 document.addEventListener("DOMContentLoaded", function () {
-
-  console.log("body classlist::", document.body.classList);
-  var cloneBody = $('body').clone().find('script').remove().end();
-  const placeholders = cloneBody.text().match(/\[\[(.*?)\]\]/g);
+ // var cloneBody = $('body').clone().find('script').remove().end();
+  var labels = document.body.querySelectorAll('label');
+ //console.log("body classlist::", labels);
+ // const placeholders = cloneBody.text().match(/\[\[(.*?)\]\]/g);
   var HTMLPlaceholderClasses = [];
-  for (var j in placeholders) {
-    placeholders[j] = placeholders[j].replace("[[", "").replace("]]", "");
+  for (var j in labels) {
+    if(HTMLPlaceholderClasses.indexOf(labels[j].className) == -1)
+        HTMLPlaceholderClasses.push(labels[j].className);
+   // console.log(labels[j].className);
+    // placeholders[j] = placeholders[j].replace("[[", "").replace("]]", "");
 
-    if (HTMLPlaceholderClasses.indexOf(placeholders[j]) === -1) {
-      HTMLPlaceholderClasses.push(placeholders[j]);
-    }
+    // if (HTMLPlaceholderClasses.indexOf(placeholders[j]) === -1) {
+    //   HTMLPlaceholderClasses.push(placeholders[j]);
+    // }
   }
 
   document.getElementsByClassName("personal_information_first_last_name")[0].style.display = "none";
@@ -101,19 +104,19 @@ document.addEventListener("DOMContentLoaded", function () {
   var socket = io.connect(multiplex.url);
   const domain = multiplex.domain;
 
-  var html_placeholder_class_and_innerHTML_object = {};
+  // var html_placeholder_class_and_innerHTML_object = {};
 
-  for (var j in HTMLPlaceholderClasses) {
-    var arr = [];
-    var elements = document.getElementsByClassName(HTMLPlaceholderClasses[j]);
-    if (elements) {
-      arr = [];
-      for (var e = 0; e < elements.length; e++) {
-        arr.push(elements[e].innerHTML);
-      }
-      html_placeholder_class_and_innerHTML_object[HTMLPlaceholderClasses[j]] = arr;
-    }
-  }
+  // for (var j in HTMLPlaceholderClasses) {
+  //   var arr = [];
+  //   var elements = document.getElementsByClassName(HTMLPlaceholderClasses[j]);
+  //   if (elements) {
+  //     arr = [];
+  //     for (var e = 0; e < elements.length; e++) {
+  //       arr.push(elements[e].innerHTML);
+  //     }
+  //     html_placeholder_class_and_innerHTML_object[HTMLPlaceholderClasses[j]] = arr;
+  //   }
+  // }
 
   ///socket requests
 
@@ -203,35 +206,53 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function replacePlaceholders(placeholders) {
     if (placeholders) {
-      var tempPlaceholder = null, innerHTMLList = null;
-
-      for (var i in HTMLPlaceholderClasses) {
+      var tempPlaceholder = null,value ="";
+      for(var i in HTMLPlaceholderClasses){
         tempPlaceholder = HTMLPlaceholderClasses[i];
-        innerHTMLList = html_placeholder_class_and_innerHTML_object[tempPlaceholder];
-        if (innerHTMLList !== null) {
-          for (var j = 0; j < innerHTMLList.length; j++) {
-            var tempText = innerHTMLList[j].match(/\[\[(.*?)\]\]/g), text = innerHTMLList[j], value = null;
-
-            if (tempText && document.getElementsByClassName(tempPlaceholder)) {
-              for (var tempItr = 0; tempItr < tempText.length; tempItr++) {
-                tempText[tempItr] = tempText[tempItr].replace("[[", "").replace("]]", "");
-                if (placeholders.hasOwnProperty(tempText[tempItr])) {
-                  value = placeholders[tempText[tempItr]] != null && placeholders[tempText[tempItr]] !== "" ? placeholders[tempText[tempItr]] : "[Data Not Available]";
-                  if (/^[$]/g.test(value)) {
-                    value = value.replace(/\.00$/, '');
-                  }
-                } else {
-                  value = "[Placeholder Not Available]";
-                }
-                text = text.replace(`[[${tempText[tempItr]}]]`, value);
-              }
-              document.getElementsByClassName(tempPlaceholder)[j].innerHTML = text;
-              // console.log(tempPlaceholder, "::", text);
-            }
+        if(placeholders.hasOwnProperty(tempPlaceholder)){
+          if(placeholders[tempPlaceholder] != null && placeholders[tempPlaceholder] !== ""){
+                 value = placeholders[tempPlaceholder];
+          }else{
+              value ="[Data Not Available]";
           }
+        }else{
+             value ="[Placeholder Not Available]";
+        }
+        var labelElements = document.getElementsByClassName(tempPlaceholder);
+        for(var index = 0;index <labelElements.length;index++){
+          document.getElementsByClassName(tempPlaceholder)[index].innerHTML = value;
         }
         BrowserDepedancy();
       }
+      // var tempPlaceholder = null, innerHTMLList = null;
+
+      // for (var i in HTMLPlaceholderClasses) {
+      //   tempPlaceholder = HTMLPlaceholderClasses[i];
+      //   innerHTMLList = html_placeholder_class_and_innerHTML_object[tempPlaceholder];
+      //   if (innerHTMLList !== null) {
+      //     for (var j = 0; j < innerHTMLList.length; j++) {
+      //       var tempText = innerHTMLList[j].match(/\[\[(.*?)\]\]/g), text = innerHTMLList[j], value = null;
+
+      //       if (tempText && document.getElementsByClassName(tempPlaceholder)) {
+      //         for (var tempItr = 0; tempItr < tempText.length; tempItr++) {
+      //           tempText[tempItr] = tempText[tempItr].replace("[[", "").replace("]]", "");
+      //           if (placeholders.hasOwnProperty(tempText[tempItr])) {
+      //             value = placeholders[tempText[tempItr]] != null && placeholders[tempText[tempItr]] !== "" ? placeholders[tempText[tempItr]] : "[Data Not Available]";
+      //             if (/^[$]/g.test(value)) {
+      //               value = value.replace(/\.00$/, '');
+      //             }
+      //           } else {
+      //             value = "[Placeholder Not Available]";
+      //           }
+      //           text = text.replace(`[[${tempText[tempItr]}]]`, value);
+      //         }
+      //         document.getElementsByClassName(tempPlaceholder)[j].innerHTML = text;
+      //         // console.log(tempPlaceholder, "::", text);
+      //       }
+      //     }
+      //   }
+      //   BrowserDepedancy();
+      // }
     } else {
       location.reload(true);
     }

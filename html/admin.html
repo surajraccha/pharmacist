@@ -5,8 +5,8 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 	<title>American Sleep Dentistry</title>
-	<link rel="shortcut icon" href="../images/ASD_Logo.png" type="image/x-icon">
-	<!-- <link rel="shortcut icon" href="ASD_Logo.png" type="image/x-icon"> -->
+	<!-- <link rel="shortcut icon" href="../images/ASD_Logo.png" type="image/x-icon"> -->
+	<link rel="shortcut icon" href="ASD_Logo.png" type="image/x-icon">
 	<script src="https://code.jquery.com/jquery-3.5.0.js"></script>
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
@@ -291,8 +291,8 @@
 			display: none;
 		}
 	</style>
-	<!-- <script src="./../adminIndex.js"></script> -->
-	<script src="../plugin/adminIndex.js"></script>
+	<script src="./../adminIndex.js"></script>
+	<!-- <script src="../plugin/adminIndex.js"></script> -->
 </head>
 
 <body>
@@ -327,21 +327,13 @@
 				<button>Browse File</button>
 				<input id="choose_file" class="btn btn-success" type="file" hidden accept="text/html,.html" required  onchange='openFile(event)'>
 			</div>
-			<!-- <button id="uploadButton" type="submit" class="btn btn-success btn-block input">Submit</button> -->
 		</form>
 	</div>
 	<div id="loading">
-		<div>
-			<h2 id="processingText"></h2>			
-		</div>
-		     <h2 id="loaderText"></h2>
-		<div>
-			
-		</div>
-		<div id="cssloader" class="loader"></div>
+		<h2 id="loaderText"></h2>
+		<img id="spinnerImage" src="Spinner-3.gif" style="height: 50px;width: 50px;"/>
 		<button type="button" class="btn btn-success mt-6" id="backToLogin" >Back to Login.</button>
 		<button type="button" class="btn btn-success mt-6" id="backToUpload" >Back to File Upload.</button>
-
 	</div>
 </body>
 

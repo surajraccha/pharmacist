@@ -8,13 +8,14 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const multer = require('multer');
 const path = require("path");
-const htmlParser = require('node-html-parser');
+const jsdom = require("jsdom");
+const { JSDOM } = jsdom;
 var CryptoJS = require("crypto-js");
 
 dotenv.config();
 let app = express();
 
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: '100mb'}));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors({
     origin: '*'
@@ -26,8 +27,8 @@ app.use(express.static(`${__dirname}/html`));
 
 let server = http.createServer(app);
 let loginCredentials = {
-    "username": "suraj@christiansentechsolutions.com",
-    "password": "Suraj@CTS"
+    "username": "ryan@christiansentechsolutions.com",
+    "password": "Ryan@CTS"
 };
 let domainDetails = {};
 
@@ -45,7 +46,7 @@ const multerStorage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         const ext = file.mimetype.split("/")[1];
-        cb(null, `index.${ext}`);
+        cb(null, `test.${ext}`);
     },
 });
 
@@ -263,43 +264,29 @@ app.post('/upload_file', upload.single('file'), async function (req, res) {
     const title = req.body.title;
     const file = req.file;
 
-    //console.log(title);
-   // console.log(file);
+    console.log(title);
+    console.log(file);
+    
     try {
-        res.status(200).json({
-            status: "success",
-            message: "File created successfully!!",
-            code:200
-        });
+        if(!processFile()){
+            throw "Wrong HTML Uploaded! Please Upload Correct HTML."; 
+        }else{
+            res.status(200).json({
+                status: "success",
+                message: "File created successfully!!",
+                code:200
+            });
+        }
     } catch (error) {
         console.log(error);
-        res.json({
-            error,
+        res.status(500).json({
+            status: "Failed",
+            message: error,
+            code:500
         });
     }
 
 });
-
-// app.get("/process_file", (req, res) => {
-//     console.log("process file....");
-
-//   var process = processFile();
- 
-//   if(process){
-//     res.status(200).json({
-//         status: "success",
-//         code:200,
-//         message: "File Processed successfully!",
-//     });
-//   }else{
-//     res.status(200).json({
-//         status: "fail",
-//         code:101,
-//         message: "File Processing Failed,Please Upload Correct file!",
-//     });
-//   }
-    
-// });
 
 let createHash = secret => {
     let cipher = crypto.createCipher('blowfish', secret);
@@ -307,34 +294,81 @@ let createHash = secret => {
 };
 
 // Actually listen
-server.listen(opts.port || null//,function() {
-   // console.log(`Server running at http://${opts.port}/`);
-    // const data = fs.readFileSync(opts.baseDir + '/html/index.html', 'utf8');
-    // //console.log("file content::"+data);
-    // const dom = htmlParser.parse(data);
-    // var scriptTags = dom.querySelectorAll('script');
-    // console.log(scriptTags[scriptTags.length-1].remove());
+server.listen(opts.port || null);
 
-// });
-);
+ //processFile();
 
-//  function processFile(){
-//     try {
-//         const data = fs.readFileSync(opts.baseDir + '/html/index.html', 'utf8');
+ function processFile(){
+        var element = '';
+        const data = fs.readFileSync(opts.baseDir + '/html/test.html', 'utf8');
+        const root = new JSDOM(data);
+        var document = root.window.document;
+        console.log("test>>",document.body.classList.contains("reveal-viewport"));
+        console.log(document.getElementsByClassName("reveal")[0]);
 
-//         const dom = htmlParser.parse(data);
+        console.log(document.getElementsByClassName("slides")[0]);
 
-//         if(dom.querySelector('.slides') == null){
-//             return false;
-//         }
+        if(!document.body.classList.contains("reveal-viewport")) return false;
         
+        if(document.getElementsByClassName("reveal") == undefined || document.getElementsByClassName("reveal").length == 0) return false;
+        
+        if(document.getElementsByClassName("slides") == undefined ||  document.getElementsByClassName("slides").length == 0) return false;
 
-//         console.log("dom>>>"+dom);
-//     } catch (err) {
-//         console.error(err);
-//     }
-//     return true;
-//  }
+       element = document.createElement("script");
+       element.setAttribute('src','https://code.jquery.com/jquery-3.5.0.js');
+       document.head.appendChild(element);
+      
+
+       element = document.createElement("script");
+       element.setAttribute('src','https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js');
+       element.setAttribute('integrity',"sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA==");
+       element.setAttribute('crossorigin',"anonymous");
+       element.setAttribute('referrerpolicy',"no-referrer");
+       document.head.appendChild(element);
+
+       element = document.createElement("link");
+       element.setAttribute('rel',"stylesheet");
+       element.setAttribute('href',"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.1.0/css/font-awesome.min.css");
+       document.head.appendChild(element);
+
+       element = document.createElement("link");
+       element.setAttribute('rel',"stylesheet");
+       element.setAttribute('href',"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css");
+       document.head.appendChild(element);
+
+       element= document.createElement("link");
+       element.setAttribute('rel',"stylesheet");
+       element.setAttribute('href',"https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css");
+       document.head.appendChild(element);
+
+       element= document.createElement("link");
+       element.setAttribute('rel',"shortcut icon");
+       element.setAttribute('href',"ASD_Logo.png");
+       element.setAttribute('type',"image/x-icon");
+       document.head.appendChild(element);
+
+       document.body.lastElementChild.remove();
+
+       element= document.createElement("script");
+       element.setAttribute('src',"/socket.io/socket.io.js");
+       document.body.appendChild(element);
+       
+       element= document.createElement("script");
+       element.setAttribute('src',"./../index.js");
+       document.body.appendChild(element);
+
+       element = document.getElementsByClassName("password")[0];
+
+       if(element == undefined || element == null)
+          return false;
+        
+       element.setAttribute("onkeypress","return onlyNumberKey(event)");
+
+       fs.writeFileSync(opts.baseDir + '/html/presentation.html', root.serialize() , 'utf-8');
+
+       return true;
+ }
+  
 
 let brown = '\033[33m',
     green = '\033[32m',
