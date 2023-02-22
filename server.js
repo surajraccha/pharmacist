@@ -20,7 +20,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors({
     origin: '*'
 }));
-
+console.log("__dirname>>"+__dirname);
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, 'views'));
 app.use(express.static(`${__dirname}/html`));
@@ -71,7 +71,9 @@ io.on('connection', socket => {
         if (typeof data.secret == 'undefined' || data.secret == null || data.secret === '') return;
         if (createHash(data.secret) === data.socketId) {
             data.secret = null;
-            domainDetails[data.domain] = {"currentSlideState":data.state};
+            var domainObject = domainDetails[data.domain] || {};
+            domainObject["currentSlideState"] = data.state;
+            domainDetails[data.domain] = domainObject;
             socket.broadcast.emit(data.socketId, data);
         };
     });
@@ -161,28 +163,25 @@ app.post("/navigate-slide", (req, res) => {
         paused: false
     };
 
-    //data.domain = 'localhost';
     var domainObject = domainDetails[data.domain] || {};
-    
+    console.log("test>>>",Object.keys(domainObject));
+    console.log("test2>>"+Object.keys(domainDetails[data.domain]));
     domainObject["currentSlideState"] = data.state;
     domainObject["placeholders"] = data.placeholders;
-   // console.log("data.secured>>>",data.secured);
-    if(data.secured){
+    console.log("secured>>",data.secured);
+    if(data.secured === true){
       domainObject["domainSecurity"] = data.secured; 
-    }else if(domainDetails[data.domain] && !domainDetails[data.domain].hasOwnProperty("domainSecurity")){
-        domainDetails[data.domain]["domainSecurity"] = false;
-    } 
+    }else if(data.secured === false){
+        domainObject["domainSecurity"] = data.secured; 
+    }
+    domainObject["orderId"] = data.orderId;
     domainObject["token"] = CryptoJS.AES.encrypt(data.orderId,data.domain).toString();
-
-  //  console.log(data.orderId,data.domain, domainObject["token"]);
     domainDetails[data.domain] = domainObject;
-
+    console.table(domainDetails);
     if(domainDetails[data.domain] && domainDetails[data.domain].hasOwnProperty("domainSecurity")){
         data.domainSecurity = domainDetails[data.domain]["domainSecurity"];
     }
     data.token = domainObject["token"];
-    console.log('navigate-slide>>>domainDetails>>>domainSecurity>>>>', domainDetails[data.domain]["domainSecurity"]);
-    // console.log('navigate-slide>>>domainDetails>>>', domainDetails[data.domain]);
     io.emit('change-slide', data);
     res.header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type");
     res.send({ status: 'ok', state: data.state });
@@ -190,9 +189,7 @@ app.post("/navigate-slide", (req, res) => {
 
 
 app.post('/start-stop-presentation', (req, res) => {
-    //console.log("req>>>", req);
     var data = req.body;
-   // console.log("data>>>", data);
     data.state = {
         indexh: 0,
         indexv: 0,
@@ -205,8 +202,12 @@ app.post('/start-stop-presentation', (req, res) => {
 
     data.domain = data.domain.replace('https://', '').replace("www.","");
     data.domain = data.domain.replace('.com', '');
- //   console.log("domain>>", data.domain);
-    var domainObject =  domainDetails[data.domain] || {};
+    console.log("domain>>", data.domain);
+
+    if(data.orderId && domainDetails[data.domain] && domainDetails[data.domain]["orderId"] && data.orderId != domainDetails[data.domain]["orderId"]){
+        delete domainDetails[data.domain];
+    }
+    var domainObject =domainDetails[data.domain]|| {};
     if(data.secured){
         domainObject["domainSecurity"] = data.secured; 
         data["domainSecurity"] =  data.secured;
@@ -217,6 +218,7 @@ app.post('/start-stop-presentation', (req, res) => {
     domainObject["currentSlideState"] = data.state;
     domainObject["placeholders"] = data.placeholders;
     domainObject["token"] = CryptoJS.AES.encrypt(data.orderId,data.domain).toString();
+    domainObject["orderId"] = data.orderId;
     domainDetails[data.domain] = domainObject;
     data.token = domainObject["token"];
     
@@ -228,14 +230,12 @@ app.post('/start-stop-presentation', (req, res) => {
         console.log("inside stop");
         io.emit('disconnect-client', data);
     }
-    //console.log('start-stop-presentation>>>domainDetails>>>domainSecurity>>>>', domainDetails[data.domain]["domainSecurity"]);
-   //console.log('start-stop-presentation>>>domainDetails>>>', domainDetails[data.domain]);
+    console.table(domainDetails);
     res.header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type");
     res.send({ status: 'ok' });
 });
 
 app.post("/login", (req, res) => {
-   // console.log("login req>>" + req.body.email);
     var status = null, code = null;
     if (req.body) {
         var email = req.body.email;
@@ -295,8 +295,6 @@ let createHash = secret => {
 
 // Actually listen
 server.listen(opts.port || null);
-
- //processFile();
 
  function processFile(){
         var element = '';

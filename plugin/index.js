@@ -1,15 +1,32 @@
-///backup///
+//const envirnoment="production";
+const envirnoment="testing";
+//const envirnoment="dev";
 
-//const socketDomain = "http://localhost:4002/";
-const socketDomain = "https://"+ window.location.hostname;
-//test Server
-//const API_URL = "https://dialertest.americansleepdentistry.com/communication-api/update-secure-slide-login";
+var SOCKET_DOMAIN ="";
+var API_URL="";
+var CLIENT_JS = "";
+var MASTER_JS ="";
 
-//Live Server
-const API_URL = "https://dialer.americansleepdentistry.com/communication-api/update-secure-slide-login";
-
-//local server
-//const API_URL = "http://localhost:8081/update-secure-slide-login";
+switch(envirnoment){
+  case 'production':
+    SOCKET_DOMAIN = "https://"+ window.location.hostname;
+    API_URL = "https://dialer.americansleepdentistry.com/communication-api/update-secure-slide-login";
+    CLIENT_JS = "./../client.js";
+    MASTER_JS ="./../master.js";
+    break;
+  case 'testing':
+    SOCKET_DOMAIN = "https://"+ window.location.hostname;
+    API_URL = "https://dialertest.americansleepdentistry.com/communication-api/update-secure-slide-login";
+    CLIENT_JS = "./../client.js";
+    MASTER_JS ="./../master.js";
+    break;
+  case 'dev':
+    SOCKET_DOMAIN = "http://localhost:4002/";
+    API_URL = "http://localhost:8081/update-secure-slide-login";
+    CLIENT_JS = "plugin/client.js";
+    MASTER_JS ="plugin/master.js";
+    break;
+}
 
 const params = new URLSearchParams(window.location.search);
 const control = params.get('m') ? true : false;
@@ -59,41 +76,26 @@ Reveal.initialize({
     // Example values. To generate your own, see the socket.io server instructions.
     secret: control ? '16232158975299267019' : null, // Obtained from the socket.io server. Gives this (the master) control of the presentation
     id: '17fa12279c3854fe', // Obtained from socket.io server
-    url: socketDomain, // Location of socket.io server
+    url: SOCKET_DOMAIN, // Location of socket.io server
     domain: domain
   },
 
   // Don't forget to add the dependencies
   dependencies: [
     { src: `/socket.io/socket.io.js`, async: true },
-     {
-       src: params.get('m') ?
-         './../master.js' :
-         './../client.js', async: true
-     }
-    // {
-    //   src: params.get('m') ?
-    //     'plugin/master.js' :
-    //     'plugin/client.js', async: true
-    // }
+    {
+      src: params.get('m') ? MASTER_JS : CLIENT_JS, async: true
+    }
   ]
 });
 
 document.addEventListener("DOMContentLoaded", function () {
- // var cloneBody = $('body').clone().find('script').remove().end();
   var labels = document.body.querySelectorAll('label');
- //console.log("body classlist::", labels);
- // const placeholders = cloneBody.text().match(/\[\[(.*?)\]\]/g);
+
   var HTMLPlaceholderClasses = [];
   for (var j in labels) {
     if(HTMLPlaceholderClasses.indexOf(labels[j].className) == -1)
         HTMLPlaceholderClasses.push(labels[j].className);
-   // console.log(labels[j].className);
-    // placeholders[j] = placeholders[j].replace("[[", "").replace("]]", "");
-
-    // if (HTMLPlaceholderClasses.indexOf(placeholders[j]) === -1) {
-    //   HTMLPlaceholderClasses.push(placeholders[j]);
-    // }
   }
 
   document.getElementsByClassName("personal_information_first_last_name")[0].style.display = "none";
@@ -104,24 +106,17 @@ document.addEventListener("DOMContentLoaded", function () {
   var socket = io.connect(multiplex.url);
   const domain = multiplex.domain;
 
-  // var html_placeholder_class_and_innerHTML_object = {};
-
-  // for (var j in HTMLPlaceholderClasses) {
-  //   var arr = [];
-  //   var elements = document.getElementsByClassName(HTMLPlaceholderClasses[j]);
-  //   if (elements) {
-  //     arr = [];
-  //     for (var e = 0; e < elements.length; e++) {
-  //       arr.push(elements[e].innerHTML);
-  //     }
-  //     html_placeholder_class_and_innerHTML_object[HTMLPlaceholderClasses[j]] = arr;
-  //   }
-  // }
-
   ///socket requests
 
   socket.emit('fetch-data', { socketId: multiplex.id, domain: domain }, function (response) {
     if (response.status) {
+
+      if(response.domainSecurity != null){
+        localStorage.setItem("domainSecurity",response.domainSecurity);
+      }
+      if (response.token) {
+        localStorage.setItem("token", response.token);
+      }
       if (response.domainSecurity == true ){
         if (!localStorage.getItem("password") || localStorage.getItem("password") != CryptoJS.AES.decrypt(response.token, domain).toString(CryptoJS.enc.Utf8)) {
           Reveal.setState({
@@ -141,7 +136,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         return;
       }
-
       document.getElementsByClassName("personal_information_first_last_name")[0].style.display = "contents";
       replacePlaceholders(response.data);
       Reveal.setState(response.currentSlideState);
@@ -151,9 +145,12 @@ document.addEventListener("DOMContentLoaded", function () {
   socket.on('change-slide', function (data) {
     if (data.socketId !== socketId) { return; }
     if (data.domain !== domain) { return; }
-
-    if (data.token && !localStorage.getItem("token")) {
+    console.log("change slide>>",data);
+    if (data.token) {
       localStorage.setItem("token", data.token);
+    }
+    if(data.domainSecurity != null){
+      localStorage.setItem("domainSecurity",data.domainSecurity);
     }
     
     if (data.domainSecurity == true && data.state && data.state.indexh > 1){
@@ -175,7 +172,6 @@ document.addEventListener("DOMContentLoaded", function () {
       });
       return;
     }
-
     document.getElementsByClassName("personal_information_first_last_name")[0].style.display = "contents";
     replacePlaceholders(data.placeholders);
     Reveal.setState(data.state);
@@ -199,6 +195,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     localStorage.removeItem("password");
     localStorage.removeItem("token");
+    localStorage.removeItem("domainSecurity");
 
   })
 
@@ -213,7 +210,7 @@ document.addEventListener("DOMContentLoaded", function () {
           if(placeholders[tempPlaceholder] != null && placeholders[tempPlaceholder] !== ""){
                  value = placeholders[tempPlaceholder];
           }else{
-              value ="[Data Not Available]";
+              value ="";
           }
         }else{
              value ="[Placeholder Not Available]";
@@ -224,35 +221,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         BrowserDepedancy();
       }
-      // var tempPlaceholder = null, innerHTMLList = null;
-
-      // for (var i in HTMLPlaceholderClasses) {
-      //   tempPlaceholder = HTMLPlaceholderClasses[i];
-      //   innerHTMLList = html_placeholder_class_and_innerHTML_object[tempPlaceholder];
-      //   if (innerHTMLList !== null) {
-      //     for (var j = 0; j < innerHTMLList.length; j++) {
-      //       var tempText = innerHTMLList[j].match(/\[\[(.*?)\]\]/g), text = innerHTMLList[j], value = null;
-
-      //       if (tempText && document.getElementsByClassName(tempPlaceholder)) {
-      //         for (var tempItr = 0; tempItr < tempText.length; tempItr++) {
-      //           tempText[tempItr] = tempText[tempItr].replace("[[", "").replace("]]", "");
-      //           if (placeholders.hasOwnProperty(tempText[tempItr])) {
-      //             value = placeholders[tempText[tempItr]] != null && placeholders[tempText[tempItr]] !== "" ? placeholders[tempText[tempItr]] : "[Data Not Available]";
-      //             if (/^[$]/g.test(value)) {
-      //               value = value.replace(/\.00$/, '');
-      //             }
-      //           } else {
-      //             value = "[Placeholder Not Available]";
-      //           }
-      //           text = text.replace(`[[${tempText[tempItr]}]]`, value);
-      //         }
-      //         document.getElementsByClassName(tempPlaceholder)[j].innerHTML = text;
-      //         // console.log(tempPlaceholder, "::", text);
-      //       }
-      //     }
-      //   }
-      //   BrowserDepedancy();
-      // }
     } else {
       location.reload(true);
     }
@@ -311,7 +279,7 @@ document.addEventListener("DOMContentLoaded", function () {
       },
       body: JSON.stringify({
         "orderId": element[0].value,
-        "securedSlidesLoggedIn": true
+        "slidePresentationDetails.userLoggedIn": true
       })
     }).then(res => res.json())
       .then(res => {

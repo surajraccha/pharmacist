@@ -13,7 +13,8 @@
 		if(message.domain !== domain){return;}
 		
 		if( window.location.host === 'localhost:1947' ) return;
-       
+		if( localStorage.getItem("domainSecurity") == 'true' && (localStorage.getItem("password") == null || localStorage.getItem("password") != CryptoJS.AES.decrypt(localStorage.getItem("token"), domain).toString(CryptoJS.enc.Utf8))) return;
+
 		if ( message.state ) {
 			Reveal.setState(message.state);
 		}
