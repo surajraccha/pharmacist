@@ -10,8 +10,7 @@
 	const domain = multiplex.domain;
 
 	function post(evt) {
-		//console.log("test",OverView);
-		// console.log(evt);
+
 		var messageData = {
 			state: Reveal.getState(),
 			secret: multiplex.secret,

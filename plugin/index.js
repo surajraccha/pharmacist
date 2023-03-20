@@ -1,30 +1,30 @@
-//const envirnoment="production";
-const envirnoment="testing";
-//const envirnoment="dev";
+const envirnoment="production";
+//const envirnoment="testing";
+//const envirnoment = "dev";
 
-var SOCKET_DOMAIN ="";
-var API_URL="";
+var SOCKET_DOMAIN = "";
+var API_URL = "";
 var CLIENT_JS = "";
-var MASTER_JS ="";
+var MASTER_JS = "";
 
-switch(envirnoment){
+switch (envirnoment) {
   case 'production':
-    SOCKET_DOMAIN = "https://"+ window.location.hostname;
+    SOCKET_DOMAIN = "https://" + window.location.hostname;
     API_URL = "https://dialer.americansleepdentistry.com/communication-api/update-secure-slide-login";
     CLIENT_JS = "./../client.js";
-    MASTER_JS ="./../master.js";
+    MASTER_JS = "./../master.js";
     break;
   case 'testing':
-    SOCKET_DOMAIN = "https://"+ window.location.hostname;
+    SOCKET_DOMAIN = "https://" + window.location.hostname;
     API_URL = "https://dialertest.americansleepdentistry.com/communication-api/update-secure-slide-login";
     CLIENT_JS = "./../client.js";
-    MASTER_JS ="./../master.js";
+    MASTER_JS = "./../master.js";
     break;
   case 'dev':
     SOCKET_DOMAIN = "http://localhost:4002/";
     API_URL = "http://localhost:8081/update-secure-slide-login";
     CLIENT_JS = "plugin/client.js";
-    MASTER_JS ="plugin/master.js";
+    MASTER_JS = "plugin/master.js";
     break;
 }
 
@@ -94,9 +94,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   var HTMLPlaceholderClasses = [];
   for (var j in labels) {
-    if(HTMLPlaceholderClasses.indexOf(labels[j].className) == -1)
-        HTMLPlaceholderClasses.push(labels[j].className);
+    if (HTMLPlaceholderClasses.indexOf(labels[j].className) == -1)
+      HTMLPlaceholderClasses.push(labels[j].className);
   }
+  console.log(HTMLPlaceholderClasses);
 
   document.getElementsByClassName("personal_information_first_last_name")[0].style.display = "none";
   const params = new URLSearchParams(window.location.search);
@@ -110,31 +111,32 @@ document.addEventListener("DOMContentLoaded", function () {
 
   socket.emit('fetch-data', { socketId: multiplex.id, domain: domain }, function (response) {
     if (response.status) {
-
-      if(response.domainSecurity != null){
-        localStorage.setItem("domainSecurity",response.domainSecurity);
-      }
-      if (response.token) {
-        localStorage.setItem("token", response.token);
-      }
-      if (response.domainSecurity == true ){
-        if (!localStorage.getItem("password") || localStorage.getItem("password") != CryptoJS.AES.decrypt(response.token, domain).toString(CryptoJS.enc.Utf8)) {
+      if (mode != 'p') {
+        if (response.domainSecurity != null) {
+          localStorage.setItem("domainSecurity", response.domainSecurity);
+        }
+        if (response.token) {
+          localStorage.setItem("token", response.token);
+        }
+        if (response.domainSecurity == true) {
+          if (!localStorage.getItem("password") || localStorage.getItem("password") != CryptoJS.AES.decrypt(response.token, domain).toString(CryptoJS.enc.Utf8)) {
+            Reveal.setState({
+              indexh: 1,
+              indexv: 0,
+              overview: false,
+              paused: false
+            });
+            return;
+          }
+        } else if (response.domainSecurity == null || response.domainSecurity == undefined) {
           Reveal.setState({
-            indexh: 1,
+            indexh: 0,
             indexv: 0,
             overview: false,
             paused: false
           });
           return;
         }
-      }else if(response.domainSecurity == null || response.domainSecurity == undefined){
-        Reveal.setState({
-          indexh: 0,
-          indexv: 0,
-          overview: false,
-          paused: false
-        });
-        return;
       }
       document.getElementsByClassName("personal_information_first_last_name")[0].style.display = "contents";
       replacePlaceholders(response.data);
@@ -145,33 +147,43 @@ document.addEventListener("DOMContentLoaded", function () {
   socket.on('change-slide', function (data) {
     if (data.socketId !== socketId) { return; }
     if (data.domain !== domain) { return; }
-    console.log("change slide>>",data);
-    if (data.token) {
-      localStorage.setItem("token", data.token);
+    if (mode === 'p' && data.domainSecurity && data.state && data.state.indexh >= 2) {   //calling warning pop up for agent.
+      if (data.userLoggedIn) {
+        closePopup();
+      } else {
+        showPopup();
+      }
     }
-    if(data.domainSecurity != null){
-      localStorage.setItem("domainSecurity",data.domainSecurity);
-    }
-    
-    if (data.domainSecurity == true && data.state && data.state.indexh > 1){
-      if (!localStorage.getItem("password") || localStorage.getItem("password") != CryptoJS.AES.decrypt(data.token, domain).toString(CryptoJS.enc.Utf8)) {
+
+    if (mode != 'p') {
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
+      if (data.domainSecurity != null) {
+        localStorage.setItem("domainSecurity", data.domainSecurity);
+      }
+  
+      if (data.domainSecurity == true && data.state && data.state.indexh > 1) {
+        if (!localStorage.getItem("password") || localStorage.getItem("password") != CryptoJS.AES.decrypt(data.token, domain).toString(CryptoJS.enc.Utf8)) {
+          Reveal.setState({
+            indexh: 1,
+            indexv: 0,
+            overview: false,
+            paused: false
+          });
+          return;
+        }
+      } else if (data.domainSecurity == null || data.domainSecurity == undefined) {
         Reveal.setState({
-          indexh: 1,
+          indexh: 0,
           indexv: 0,
           overview: false,
           paused: false
         });
         return;
       }
-    }else if(data.domainSecurity == null || data.domainSecurity == undefined){
-      Reveal.setState({
-        indexh: 0,
-        indexv: 0,
-        overview: false,
-        paused: false
-      });
-      return;
     }
+
     document.getElementsByClassName("personal_information_first_last_name")[0].style.display = "contents";
     replacePlaceholders(data.placeholders);
     Reveal.setState(data.state);
@@ -193,30 +205,31 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementsByClassName("password")[0].style.display = "inline";
     document.getElementsByClassName("togglePassword")[0].style.display = "inline";
 
-    localStorage.removeItem("password");
-    localStorage.removeItem("token");
-    localStorage.removeItem("domainSecurity");
-
+    if (mode != 'p') {
+      localStorage.removeItem("password");
+      localStorage.removeItem("token");
+      localStorage.removeItem("domainSecurity");
+    }
   })
 
   //Replace Placeholder Logic 
 
   function replacePlaceholders(placeholders) {
     if (placeholders) {
-      var tempPlaceholder = null,value ="";
-      for(var i in HTMLPlaceholderClasses){
+      var tempPlaceholder = null, value = "";
+      for (var i in HTMLPlaceholderClasses) {
         tempPlaceholder = HTMLPlaceholderClasses[i];
-        if(placeholders.hasOwnProperty(tempPlaceholder)){
-          if(placeholders[tempPlaceholder] != null && placeholders[tempPlaceholder] !== ""){
-                 value = placeholders[tempPlaceholder];
-          }else{
-              value ="";
+        if (placeholders.hasOwnProperty(tempPlaceholder)) {
+          if (placeholders[tempPlaceholder] != null && placeholders[tempPlaceholder] !== "") {
+            value = placeholders[tempPlaceholder];
+          } else {
+            value = "";
           }
-        }else{
-             value ="[Placeholder Not Available]";
+        } else {
+          value = "[Placeholder Not Available]";
         }
         var labelElements = document.getElementsByClassName(tempPlaceholder);
-        for(var index = 0;index <labelElements.length;index++){
+        for (var index = 0; index < labelElements.length; index++) {
           document.getElementsByClassName(tempPlaceholder)[index].innerHTML = value;
         }
         BrowserDepedancy();
@@ -261,7 +274,6 @@ document.addEventListener("DOMContentLoaded", function () {
   function checkSecureLogin(element) {
     // console.log("token>>", CryptoJS.AES.decrypt(localStorage.getItem("token"),domain).toString(CryptoJS.enc.Utf8)," ",localStorage.getItem("token"));
     var token = localStorage.getItem("token");
-    console.log("token>>>", token);
     if (!token || token == null || token == "") {
       location.reload(true);
       return;
@@ -271,37 +283,151 @@ document.addEventListener("DOMContentLoaded", function () {
       element[0].value = null;
       return;
     }
-    fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-        // 'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: JSON.stringify({
-        "orderId": element[0].value,
-        "slidePresentationDetails.userLoggedIn": true
-      })
-    }).then(res => res.json())
-      .then(res => {
-        //console.log(res);
-        if (res.status == 200) {
-          document.getElementsByClassName("passwordError")[0].innerHTML = "";
-          document.getElementsByClassName("passwordSuccess")[0].innerHTML = "<br><b>Login Successful!</b>";
-          document.getElementsByClassName("submit")[0].style.display = "none";
-          element[0].style.display = "none";
-          document.getElementsByClassName("togglePassword")[0].style.display = "none";
-          localStorage.setItem("password", element[0].value);
-        } else {
+
+    if (mode === 'p') {
+      document.getElementsByClassName("passwordError")[0].innerHTML = "";
+      document.getElementsByClassName("passwordSuccess")[0].innerHTML = "<br><b>Login Successful!</b>";
+      document.getElementsByClassName("submit")[0].style.display = "none";
+      element[0].style.display = "none";
+      document.getElementsByClassName("togglePassword")[0].style.display = "none";
+      localStorage.setItem("password", element[0].value);
+    } else {
+      fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+          // 'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: JSON.stringify({
+          "orderId": element[0].value,
+          "slidePresentationDetails.userLoggedIn": true
+        })
+      }).then(res => res.json())
+        .then(res => {
+          //console.log(res);
+          if (res.status == 200) {
+            document.getElementsByClassName("passwordError")[0].innerHTML = "";
+            document.getElementsByClassName("passwordSuccess")[0].innerHTML = "<br><b>Login Successful!</b>";
+            document.getElementsByClassName("submit")[0].style.display = "none";
+            element[0].style.display = "none";
+            document.getElementsByClassName("togglePassword")[0].style.display = "none";
+            localStorage.setItem("password", element[0].value);
+          } else {
+            document.getElementsByClassName("passwordError")[0].innerHTML = "<br>Invalid Password!";
+            element[0].value = null;
+          }
+        })
+        .catch(err => {
           document.getElementsByClassName("passwordError")[0].innerHTML = "<br>Invalid Password!";
           element[0].value = null;
-        }
-      })
-      .catch(err => {
-        document.getElementsByClassName("passwordError")[0].innerHTML = "<br>Invalid Password!";
-        element[0].value = null;
-      });
+        });
+    }
   }
 
+  // code for warning pop up to agent that user is not logged in.
+  var css = document.createElement('style');
+  const popupFontSize = (window.innerHeight * 0.06).toString() + 'px';
+  css.innerHTML = `
+      :root {
+        --popup-font-size: ${popupFontSize};
+      }
+    
+      .popup {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: transparent;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1;
+      }
+    
+      .popup-message {
+        background-color: #ED2939;
+        color: white;
+        padding: 20px;
+        border-radius: 5px;
+        font-size: var(--popup-font-size);
+      }
+    
+      .popup-message p {
+        margin: 0;
+      }
+    
+      .popup-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        color: white;
+        font-size: var(--popup-font-size);
+        cursor: pointer;
+      }
+    `;
+
+  window.addEventListener('resize', () => {
+    const popupFontSize = (window.innerHeight * 0.10).toString() + 'px';
+    document.documentElement.style.setProperty('--popup-font-size', popupFontSize);
+  });
+
+  document.head.appendChild(css);
+
+  // Create the popup dynamically
+  function createPopup(message) {
+    // Create the popup container
+    var popup = document.createElement('div');
+    popup.classList.add('popup');
+
+    // Create the message container
+    var messageContainer = document.createElement('div');
+    messageContainer.classList.add('popup-message');
+
+    // Create the message
+    var messageElement = document.createElement('p');
+    messageElement.textContent = message;
+    messageContainer.appendChild(messageElement);
+
+    // Create the close button
+    var closeButton = document.createElement('p');
+    closeButton.classList.add('popup-close');
+    closeButton.textContent = 'X';
+    closeButton.addEventListener('click', function () {
+      popup.style.display = 'none';
+    });
+    messageContainer.appendChild(closeButton);
+
+    // Add the message container to the popup container
+    popup.appendChild(messageContainer);
+
+    // Add the popup container to the body
+    document.body.appendChild(popup);
+
+    return popup;
+  }
+
+  // Show the popup
+  function showPopup() {
+    var popup = createPopup('Patient Not Logged In!!!');
+    popup.style.display = 'flex';
+
+    // Close the popup when clicked outside of the popup box
+    popup.addEventListener('click', function (event) {
+      if (event.target.classList.contains('popup')) {
+        popup.style.display = 'none';
+      }
+    });
+  }
+
+  function closePopup() {
+    const popup = document.getElementsByClassName('popup');
+    if (popup) {
+      for (var i = 0; i < popup.length; i++) {
+        popup[i].style.display = 'none';
+      }
+    }
+  }
 });
 
 function onlyNumberKey(evt) {
@@ -316,7 +442,7 @@ window.onlyNumberKey = onlyNumberKey;
 
 const togglePassword = document.querySelectorAll('.togglePassword');
 const password = document.querySelectorAll('.password');
-if(togglePassword != null && togglePassword.length > 0){
+if (togglePassword != null && togglePassword.length > 0) {
   togglePassword[0].addEventListener('click', function (e) {
     // toggle the type attribute
     const type = password[0].getAttribute('type') === 'password' ? 'text' : 'password';
