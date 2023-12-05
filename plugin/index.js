@@ -1,242 +1,318 @@
-const envirnoment="production";
-//const envirnoment="testing";
+//const envirnoment = "production";
+const envirnoment = "testing";
 //const envirnoment = "dev";
 
-var SOCKET_DOMAIN = "";
-var API_URL = "";
-var CLIENT_JS = "";
-var MASTER_JS = "";
-
-switch (envirnoment) {
-  case 'production':
-    SOCKET_DOMAIN = "https://" + window.location.hostname;
-    API_URL = "https://dialer.americansleepdentistry.com/communication-api/update-secure-slide-login";
-    CLIENT_JS = "./../client.js";
-    MASTER_JS = "./../master.js";
-    break;
-  case 'testing':
-    SOCKET_DOMAIN = "https://" + window.location.hostname;
-    API_URL = "https://dialertest.americansleepdentistry.com/communication-api/update-secure-slide-login";
-    CLIENT_JS = "./../client.js";
-    MASTER_JS = "./../master.js";
-    break;
-  case 'dev':
-    SOCKET_DOMAIN = "http://localhost:4002/";
-    API_URL = "http://localhost:8081/update-secure-slide-login";
-    CLIENT_JS = "plugin/client.js";
-    MASTER_JS = "plugin/master.js";
-    break;
-}
-
-const params = new URLSearchParams(window.location.search);
-const control = params.get('m') ? true : false;
-var domain = window.location.hostname;
-domain = domain.replace('www.', '');
-domain = domain.replace('.com', '');
-console.log(domain);
-
-Reveal.initialize({
-  width: SLConfig.deck.width,
-  height: SLConfig.deck.height,
-  margin: 0.05,
-  hash: true,
-  controls: control,
-  touch: false,
-  overview: control,
-  keyboard: control,
-  progress: true,
-  mouseWheel: false,
-  showNotes: SLConfig.deck.share_notes ? 'separate-page' : false,
-  slideNumber: SLConfig.deck.slide_number,
-  fragmentInURL: true,
-
-  autoSlide: SLConfig.deck.auto_slide_interval || 0,
-  autoSlideStoppable: true,
-
-  autoAnimateMatcher: SL.deck.AutoAnimate.matcher,
-
-  rollingLinks: false,
-  center: SLConfig.deck.center || false,
-  shuffle: SLConfig.deck.shuffle || false,
-  loop: SLConfig.deck.should_loop || false,
-  rtl: SLConfig.deck.rtl || false,
-  navigationMode: SLConfig.deck.navigation_mode,
-
-  transition: SLConfig.deck.transition,
-  backgroundTransition: SLConfig.deck.background_transition,
-
-  pdfMaxPagesPerSlide: 1,
-
-  highlight: {
-    escapeHTML: false
+const config = {
+  production: {
+    API_URL: "https://dialer.americansleepdentistry.com/communication-api/",
   },
-
-  plugins: [RevealHighlight],
-  multiplex: {
-    // Example values. To generate your own, see the socket.io server instructions.
-    secret: control ? '16232158975299267019' : null, // Obtained from the socket.io server. Gives this (the master) control of the presentation
-    id: '17fa12279c3854fe', // Obtained from socket.io server
-    url: SOCKET_DOMAIN, // Location of socket.io server
-    domain: domain
+  testing: {
+    API_URL: "https://dialertest.americansleepdentistry.com/communication-api/",
   },
+  dev: {
+    API_URL: "http://localhost:8081/",
+  }
+};
 
-  // Don't forget to add the dependencies
-  dependencies: [
-    { src: `/socket.io/socket.io.js`, async: true },
-    {
-      src: params.get('m') ? MASTER_JS : CLIENT_JS, async: true
-    }
-  ]
-});
+const { SOCKET_DOMAIN, API_URL } = config[envirnoment];
+// Define a mapping between slide index and the field to check
+const slideFieldMapping = {
+  18: ["personal_information_first_name", "personal_information_last_name"],
+  171: ["Sleep_Consultation_Date_Patient"]
+};
+
+const mandatoryFields = {
+  personal_information_first_name: [18, "Personal Information First Name"],
+  personal_information_last_name: [18, "Personal Information Last Name"],
+  personal_information_address1: [20, "Personal Information Address"],
+  personal_information_city: [20, "Personal Information City"],
+  personal_information_state: [20, "Personal Information State"],
+  personal_information_zipcode: [20, "Personal Information Zip Code"],
+  personal_information_mobile_phone: [22, "Personal Information Mobile Phone"],
+  personal_information_email: [26, "Personal Information Email"],
+  patient_quest_Patient_Time_Zone: [31, "Patient Questionnaire Time Zone"],
+  payment_information_first_name: [138, "Payment Information First Name"],
+  payment_information_last_name: [138, "Payment Information Last Name"],
+  payment_information_address: [139, "Payment Information Address"],
+  payment_information_city: [139, "Payment Information City"],
+  payment_information_state: [139, "Payment Information State"],
+  payment_information_zip: [139, "Payment Information Zip"],
+  payment_information_credit_card_number: [141, "Payment Information Credit Card Number"],
+  payment_information_expiration_date: [142, "Payment Information Expiration Date"],
+  payment_information_credit_card_security_code: [143, "Payment Information Credit Card Security Code"]
+};
+
 
 document.addEventListener("DOMContentLoaded", function () {
+  //function declaration
+  window.openNewPatient = openNewPatient;
+  window.openPersonalInformation = openPersonalInformation;
+  window.resetFields = resetFields;
+  window.closeCustomPopup = closeCustomPopup;
+  window.replacePlaceholders = replacePlaceholders;
+  window.showNavigateRightButton = showNavigateRightButton;
+  window.openCalendly = openCalendly;
+  window.fetchData = fetchData;
+
+  //Globale variables
   var labels = document.body.querySelectorAll('label');
+  var HTMLPlaceholderClasses = [...new Set(Array.from(labels).map(label => label.className))];
+  const inputFields = document.querySelectorAll('input[type="text"], input[type="email"], input[type="date"],input[type="number"], textarea,select');
+  const agentId = window.location.pathname.replace(/^\/+/g, '');
+  var intervalId = null;
+  const DATE_DEFAULT_TIMEZONE_SET = "America/Denver";
 
-  var HTMLPlaceholderClasses = [];
-  for (var j in labels) {
-    if (HTMLPlaceholderClasses.indexOf(labels[j].className) == -1)
-      HTMLPlaceholderClasses.push(labels[j].className);
-  }
-  console.log(HTMLPlaceholderClasses);
+  initUserData();
 
-  document.getElementsByClassName("personal_information_first_last_name")[0].style.display = "none";
-  const params = new URLSearchParams(window.location.search);
-  var mode = params.get('m');
-  var multiplex = Reveal.getConfig().multiplex;
-  var socketId = multiplex.id;
-  var socket = io.connect(multiplex.url);
-  const domain = multiplex.domain;
+  //-----------------data related functions -------------------//
+  function initUserData() {
+    const storedData = localStorage.getItem('userData');
+    const userData = storedData ? JSON.parse(storedData) : {};
+    userData["referralDoctorId"] = agentId;
+    userData["hadSleepStudy"] = "Needs Sleep Study";
+    localStorage.setItem('userData', JSON.stringify(userData));
 
-  ///socket requests
+    replacePlaceholders(userData);
+    replaceFieldData(userData);
 
-  socket.emit('fetch-data', { socketId: multiplex.id, domain: domain }, function (response) {
-    if (response.status) {
-      if (mode != 'p') {
-        if (response.domainSecurity != null) {
-          localStorage.setItem("domainSecurity", response.domainSecurity);
-        }
-        if (response.token) {
-          localStorage.setItem("token", response.token);
-        }
-        if (response.domainSecurity == true) {
-          if (!localStorage.getItem("password") || localStorage.getItem("password") != CryptoJS.AES.decrypt(response.token, domain).toString(CryptoJS.enc.Utf8)) {
+
+    //-----------------------------------Reveal JS APIs------------------------------------//
+    Reveal.initialize({
+      width: SLConfig.deck.width,
+      height: SLConfig.deck.height,
+      margin: 0.05,
+      hash: true,
+      controls: true,
+      controlsTutorial: true,
+      controlsLayout: 'edges',
+      controlsBackArrows: "faded",
+      touch: true,
+      overview: false,
+      keyboard: false,
+      progress: false,
+      mouseWheel: false,
+      showNotes: SLConfig.deck.share_notes ? 'separate-page' : false,
+      slideNumber: SLConfig.deck.slide_number,
+      fragmentInURL: true,
+      autoSlide: SLConfig.deck.auto_slide_interval || 0,
+      autoSlideStoppable: true,
+      autoAnimateMatcher: SL.deck.AutoAnimate.matcher,
+      rollingLinks: false,
+      center: SLConfig.deck.center || false,
+      shuffle: SLConfig.deck.shuffle || false,
+      loop: SLConfig.deck.should_loop || false,
+      rtl: SLConfig.deck.rtl || false,
+      navigationMode: SLConfig.deck.navigation_mode,
+      transition: SLConfig.deck.transition,
+      backgroundTransition: SLConfig.deck.background_transition,
+      pdfMaxPagesPerSlide: 1,
+      highlight: {
+        escapeHTML: false
+      },
+      plugins: [RevealHighlight]
+    });
+
+    Reveal.addEventListener('ready', function (event) {
+      Reveal.setState({
+        indexh: 3,
+        indexv: 0
+      }); //go to slide horizontal 4 on initialization
+
+
+      inputFields.forEach(element => {
+        element.addEventListener(element.tagName === 'SELECT' ? 'change' : 'input', saveInputFieldData);
+      });
+    });
+
+    Reveal.on('slidechanged', (event) => {
+      // event.previousSlide, event.currentSlide, event.indexh, event.indexv
+      const storedData = localStorage.getItem('userData');
+      const userData = storedData ? JSON.parse(storedData) : {};
+
+      //code for required user data validation
+      for (const key in slideFieldMapping) {
+        if (event.indexh > key) {
+          const fieldsToCheck = slideFieldMapping[key];
+          if (!fieldsToCheck.every(field => userData[field])) {
             Reveal.setState({
-              indexh: 1,
-              indexv: 0,
-              overview: false,
-              paused: false
+              indexh: key,
+              indexv: 0
             });
             return;
           }
-        } else if (response.domainSecurity == null || response.domainSecurity == undefined) {
-          Reveal.setState({
-            indexh: 0,
-            indexv: 0,
-            overview: false,
-            paused: false
-          });
-          return;
         }
       }
-      document.getElementsByClassName("personal_information_first_last_name")[0].style.display = "contents";
-      replacePlaceholders(response.data);
-      Reveal.setState(response.currentSlideState);
-    }
-  });
 
-  socket.on('change-slide', function (data) {
-    if (data.socketId !== socketId) { return; }
-    if (data.domain !== domain) { return; }
-    if (mode === 'p' && data.domainSecurity && data.state && data.state.indexh >= 2) {   //calling warning pop up for agent.
-      if (data.userLoggedIn) {
-        closePopup();
+      if (event.indexh > 145 && checkAllMandatoryFieldsCompleted() && !localStorage.getItem("order")) {
+        try {
+          const requestOptions = {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(transformUserDataToOrderDTO(userData)),
+          };
+
+          fetch(API_URL + "create-new-lead", requestOptions)
+            .then(response => response.json())
+            .then((response) => {
+              if (response.status == 500) {
+                alert(`Error : ${response.message}`);
+              } else if (response.status == 200 && response.data) {
+                if (Object.entries(response.data.data).length > 0 && response.data.data.insuranceInfo) {
+                  openCalendly('schedule');
+                  localStorage.setItem("order", JSON.stringify(response.data.data));
+                }
+              }
+            }).catch(error => {
+              alert(`Error : ${error.message}`);
+            });
+        } catch (error) {
+          console.error('Error:', error.message);
+        }
+      }
+
+      if (localStorage.getItem("order") && document.getElementById('calendly_div').children.length == 0) {
+        openCalendly('schedule');
+      }
+
+      showNavigateRightButton(event.indexh, userData);
+
+      function checkAllMandatoryFieldsCompleted() {
+        const missingFields = Object.keys(mandatoryFields).filter(key => !userData[key]);
+
+        if (missingFields.length > 0) {
+          const warnings = missingFields.map(field => `${mandatoryFields[field][1]} is missing.\n`);
+          Reveal.setState({
+            indexh: mandatoryFields[missingFields[0]][0],
+            indexv: 0
+          });
+          alert(warnings.join(' '));
+          return false;
+        }
+        return true;
+      }
+
+      function transformUserDataToOrderDTO(userData) {
+        return {
+          "customer": {
+            "firstName": userData["personal_information_first_name"] || "",
+            "lastName": userData["personal_information_last_name"] || "",
+            "address1": userData["personal_information_address1"] || "",
+            "city": userData["personal_information_city"] || "",
+            "state": userData["personal_information_state"] || "",
+            "zip": userData["personal_information_zipcode"] || "",
+            "mobilePhone": userData["personal_information_mobile_phone"] || "",
+            "email": userData["personal_information_email"] || "",
+            "customerBackend": {
+              "referralDoctorId": userData["referralDoctorId"] || ""
+            }
+          },
+          "timeZone": userData["patient_quest_Patient_Time_Zone"] || "",
+          "paymentInfo": {
+            "paymentInfoFirstName": userData["payment_information_first_name"] || "",
+            "paymentInfoLastName": userData["payment_information_last_name"] || "",
+            "paymentInfoAddress": {
+              "address": userData["payment_information_address"] || "",
+              "city": userData["payment_information_city"] || "",
+              "state": userData["payment_information_state"] || "",
+              "zip": userData["payment_information_zip"] || ""
+            },
+            "paymentInfoCreditCardNumber": userData["payment_information_credit_card_number"] || "",
+            "paymentInfoExpDate": userData["payment_information_expiration_date"] || "",
+            "paymentInfoCreditCardSecurityCode": userData["payment_information_credit_card_security_code"] || ""
+          },
+          "hadSleepStudy": userData["hadSleepStudy"] || "",
+          "leadType": "patient"
+        };
+      }
+
+    });
+
+    //---------------------------------------------------------------------//
+  }
+
+  function saveInputFieldData(event) {
+    const storedData = localStorage.getItem('userData');
+    const userData = storedData ? JSON.parse(storedData) : {};
+    var revealState = Reveal.getState();
+
+    event.target.value != null && event.target.value != "" ? (userData[event.target.name] = event.target.value) : delete userData[event.target.name];
+
+    localStorage.setItem('userData', JSON.stringify(userData));
+    replacePlaceholders(userData);
+    showNavigateRightButton(revealState.indexh, userData);
+  }
+
+  function replaceFieldData(userData) {
+    inputFields.forEach(element => {
+      if (element.tagName == 'SELECT') {
+        element.value = 'default';
       } else {
-        showPopup();
+        element.value = userData[element.name] || "";
       }
-    }
+    });
+  }
 
-    if (mode != 'p') {
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-      }
-      if (data.domainSecurity != null) {
-        localStorage.setItem("domainSecurity", data.domainSecurity);
-      }
-  
-      if (data.domainSecurity == true && data.state && data.state.indexh > 1) {
-        if (!localStorage.getItem("password") || localStorage.getItem("password") != CryptoJS.AES.decrypt(data.token, domain).toString(CryptoJS.enc.Utf8)) {
-          Reveal.setState({
-            indexh: 1,
-            indexv: 0,
-            overview: false,
-            paused: false
-          });
-          return;
-        }
-      } else if (data.domainSecurity == null || data.domainSecurity == undefined) {
-        Reveal.setState({
-          indexh: 0,
-          indexv: 0,
-          overview: false,
-          paused: false
-        });
-        return;
-      }
-    }
+  //----------------------------------- -------------------//
+  //-----------------Pop up related functions -------------------//
+  function openNewPatient() {
+    document.getElementById('customPopup').style.display = 'flex';
+  }
 
-    document.getElementsByClassName("personal_information_first_last_name")[0].style.display = "contents";
-    replacePlaceholders(data.placeholders);
-    Reveal.setState(data.state);
-  });
+  function closeCustomPopup() {
+    document.getElementById('customPopup').style.display = 'none';
+  }
 
-  socket.on('disconnect-client', function (data) {
-    if (data.socketId !== socketId) { return; }
+  function resetFields() {
+    // Add logic to reset fields or perform other actions
+    console.log("Resetting fields...");
+    localStorage.clear();
+    replacePlaceholders({})
+    replaceFieldData({});
+    Reveal.setState({
+      indexh: 3,  //3 number slide is for restart the presentation
+      indexv: 0,
+      overview: false,
+      paused: false
+    });
+    closeCustomPopup();
+  }
 
-    if (data.domain !== domain) { return; }
-    document.getElementsByClassName("personal_information_first_last_name")[0].style.display = "none";
-    if (data.state) {
-      Reveal.setState(data.state);
-    }
+  function openPersonalInformation() {
+    Reveal.setState({
+      indexh: 18,  //18 number slide is for personal information
+      indexv: 0,
+      overview: false,
+      paused: false
+    });
+  }
 
-    document.getElementsByClassName("passwordSuccess")[0].innerHTML = "";
-    document.getElementsByClassName("passwordError")[0].innerHTML = "";
-    document.getElementsByClassName("submit")[0].style.display = "inline";
-    document.getElementsByClassName("password")[0].value = null;
-    document.getElementsByClassName("password")[0].style.display = "inline";
-    document.getElementsByClassName("togglePassword")[0].style.display = "inline";
+  //-------------------------------------------------------//
 
-    if (mode != 'p') {
-      localStorage.removeItem("password");
-      localStorage.removeItem("token");
-      localStorage.removeItem("domainSecurity");
-    }
-  })
+  //-----------------placeholder related functions -------------------//
+  function replacePlaceholders(userData) {
+    for (var i in HTMLPlaceholderClasses) {
+      var placeholder = HTMLPlaceholderClasses[i];
+      var value = "";
 
-  //Replace Placeholder Logic 
-
-  function replacePlaceholders(placeholders) {
-    if (placeholders) {
-      var tempPlaceholder = null, value = "";
-      for (var i in HTMLPlaceholderClasses) {
-        tempPlaceholder = HTMLPlaceholderClasses[i];
-        if (placeholders.hasOwnProperty(tempPlaceholder)) {
-          if (placeholders[tempPlaceholder] != null && placeholders[tempPlaceholder] !== "") {
-            value = placeholders[tempPlaceholder];
-          } else {
-            value = "";
-          }
+      if (userData.hasOwnProperty(placeholder) || placeholder === "personal_information_first_last_name") {
+        if (placeholder === "personal_information_first_last_name") {
+          const firstName = userData["personal_information_first_name"] || "";
+          const lastName = userData["personal_information_last_name"] || "";
+          value = `${firstName} ${lastName}`.trim();
         } else {
-          value = "[Placeholder Not Available]";
+          value = userData[placeholder];
         }
-        var labelElements = document.getElementsByClassName(tempPlaceholder);
-        for (var index = 0; index < labelElements.length; index++) {
-          document.getElementsByClassName(tempPlaceholder)[index].innerHTML = value;
-        }
-        BrowserDepedancy();
       }
-    } else {
-      location.reload(true);
+
+      var labelElements = document.getElementsByClassName(placeholder);
+      Array.from(labelElements).forEach(element => {
+        if (element.tagName === 'LABEL')
+          element.innerHTML = value;
+      });
     }
+    BrowserDepedancy();
   }
 
   function BrowserDepedancy() {
@@ -258,196 +334,150 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  //EventListener functions
-  var element = document.getElementsByClassName("password");
-  element[0].addEventListener('keypress', function (event) {
-    if (event.key === "Enter") {
-      checkSecureLogin(element);
-      event.preventDefault();
-    }
-  });
+  //---------------------------------------------//
 
-  document.getElementsByClassName("submit")[0].addEventListener('click', function () {
-    checkSecureLogin(element);
-  });
-
-  function checkSecureLogin(element) {
-    // console.log("token>>", CryptoJS.AES.decrypt(localStorage.getItem("token"),domain).toString(CryptoJS.enc.Utf8)," ",localStorage.getItem("token"));
-    var token = localStorage.getItem("token");
-    if (!token || token == null || token == "") {
-      location.reload(true);
-      return;
-    }
-    if (element[0].value == "" || element[0].value == null || element[0].value != CryptoJS.AES.decrypt(token, domain).toString(CryptoJS.enc.Utf8)) {
-      document.getElementsByClassName("passwordError")[0].innerHTML = "<br>Invalid Password!";
-      element[0].value = null;
-      return;
-    }
-
-    if (mode === 'p') {
-      document.getElementsByClassName("passwordError")[0].innerHTML = "";
-      document.getElementsByClassName("passwordSuccess")[0].innerHTML = "<br><b>Login Successful!</b>";
-      document.getElementsByClassName("submit")[0].style.display = "none";
-      element[0].style.display = "none";
-      document.getElementsByClassName("togglePassword")[0].style.display = "none";
-      localStorage.setItem("password", element[0].value);
+  function showNavigateRightButton(indexh, userData) {
+    const fieldsToCheck = slideFieldMapping[indexh];
+    if (fieldsToCheck) { //for slide 18,171
+      const flag = fieldsToCheck.every(field => userData[field]);
+      document.getElementsByClassName("navigate-right")[0].style.display = flag ? 'block' : 'none';
     } else {
-      fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-          // 'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: JSON.stringify({
-          "orderId": element[0].value,
-          "slidePresentationDetails.userLoggedIn": true
-        })
-      }).then(res => res.json())
-        .then(res => {
-          //console.log(res);
-          if (res.status == 200) {
-            document.getElementsByClassName("passwordError")[0].innerHTML = "";
-            document.getElementsByClassName("passwordSuccess")[0].innerHTML = "<br><b>Login Successful!</b>";
-            document.getElementsByClassName("submit")[0].style.display = "none";
-            element[0].style.display = "none";
-            document.getElementsByClassName("togglePassword")[0].style.display = "none";
-            localStorage.setItem("password", element[0].value);
-          } else {
-            document.getElementsByClassName("passwordError")[0].innerHTML = "<br>Invalid Password!";
-            element[0].value = null;
+      document.getElementsByClassName("navigate-right")[0].style.display = 'block';
+    }
+  }
+
+
+  //-------------------------calendly reschedule/cancel events-----------------------------------//
+
+  function openCalendly(calendlyEvent) {
+    const storedData = localStorage.getItem('order');
+    const leadData = storedData ? JSON.parse(storedData) : {};
+    var calendlyUrl = "";
+    const calendlyDiv = document.getElementById('calendly_div');
+
+    if (Object.entries(leadData).length === 0) {
+      return;
+    }
+
+    const appointmentId = leadData.insuranceInfo.coverageReviewAppointmentId;
+
+    if (calendlyEvent === 'schedule') {
+      calendlyUrl = 'https://calendly.com/sleep-consultation-asd/cr?timezone=' + leadData.timeZone + "&hide_landing_page_details=1"
+    } else if (calendlyEvent === 'reschedule' && appointmentId) {
+      calendlyUrl = 'https://calendly.com/reschedulings/' + appointmentId + "?hide_landing_page_details=1"
+    } else if (calendlyEvent === 'cancel' && appointmentId) {
+      calendlyUrl = 'https://calendly.com/cancellations/' + appointmentId + "?hide_landing_page_details=1";
+    }
+
+    while (calendlyDiv.firstChild) {    //remove old calendly widget and load new 
+      calendlyDiv.removeChild(calendlyDiv.firstChild);
+    }
+
+    if (calendlyUrl) {
+      Calendly.initInlineWidget({
+        url: calendlyUrl,
+        parentElement: calendlyDiv,
+        prefill: {
+          name: leadData.customer.firstName + " " + leadData.customer.lastName,
+          email: leadData.customer.email,
+          firstName: leadData.orderId,
+          customAnswers: {
+          },
+          utm: {
+            utmContent: "leadId-" + leadData.orderId
           }
-        })
-        .catch(err => {
-          document.getElementsByClassName("passwordError")[0].innerHTML = "<br>Invalid Password!";
-          element[0].value = null;
-        });
+        }
+      });
+      if ((calendlyEvent == 'reschedule' || calendlyEvent == 'cancel') && appointmentId)
+        gotoCalendlyWidget();
+
+      fetchData(leadData.orderId, calendlyEvent);
     }
   }
 
-  // code for warning pop up to agent that user is not logged in.
-  var css = document.createElement('style');
-  const popupFontSize = (window.innerHeight * 0.06).toString() + 'px';
-  css.innerHTML = `
-      :root {
-        --popup-font-size: ${popupFontSize};
-      }
-    
-      .popup {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background-color: transparent;
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 1;
-      }
-    
-      .popup-message {
-        background-color: #ED2939;
-        color: white;
-        padding: 20px;
-        border-radius: 5px;
-        font-size: var(--popup-font-size);
-      }
-    
-      .popup-message p {
-        margin: 0;
-      }
-    
-      .popup-close {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        color: white;
-        font-size: var(--popup-font-size);
-        cursor: pointer;
-      }
-    `;
+  function fetchData(orderId, calendlyEvent) {
+    if (orderId) {
+      // Clear existing interval if any
+      clearInterval(intervalId);
 
-  window.addEventListener('resize', () => {
-    const popupFontSize = (window.innerHeight * 0.10).toString() + 'px';
-    document.documentElement.style.setProperty('--popup-font-size', popupFontSize);
-  });
+      // Set up a new interval
+      intervalId = setInterval(() => {
+        fetch(API_URL + `get-updated-lead/${orderId}`)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(response => {
+            if (response) {
+              localStorage.setItem('order', JSON.stringify(response));
+              const storedData = localStorage.getItem('userData');
+              const userData = storedData ? JSON.parse(storedData) : {};
 
-  document.head.appendChild(css);
+              if ((calendlyEvent == 'schedule' || calendlyEvent == 'reschedule') && response.insuranceInfo.coverageReviewAppointmentId) {
+                const mdtTime = moment(response.insuranceInfo.coverageReviewDate).tz(DATE_DEFAULT_TIMEZONE_SET);
+                const consultationDatePatient = mdtTime.clone().tz(response.insuranceInfo.coverageReviewDatePatientTimeZone).format('dddd, MMMM D');
+                const consultationTimePatient = mdtTime.clone().tz(response.insuranceInfo.coverageReviewDatePatientTimeZone).format('hh:mm A') + ' ' + getAbbrFromTimeZonesInStandardFormate(response.insuranceInfo.coverageReviewDatePatientTimeZone);
 
-  // Create the popup dynamically
-  function createPopup(message) {
-    // Create the popup container
-    var popup = document.createElement('div');
-    popup.classList.add('popup');
+                userData["Sleep_Consultation_Date_Patient"] = consultationDatePatient;
+                userData["Sleep_Consultation_Time_Patient"] = consultationTimePatient;
+                clearInterval(intervalId);
+              } else if (calendlyEvent == 'cancel') {
+                if (!response.insuranceInfo.coverageReviewAppointmentId) {
+                  delete userData["Sleep_Consultation_Date_Patient"];
+                  delete userData["Sleep_Consultation_Time_Patient"];
+                  clearInterval(intervalId);
+                }
+              }
 
-    // Create the message container
-    var messageContainer = document.createElement('div');
-    messageContainer.classList.add('popup-message');
-
-    // Create the message
-    var messageElement = document.createElement('p');
-    messageElement.textContent = message;
-    messageContainer.appendChild(messageElement);
-
-    // Create the close button
-    var closeButton = document.createElement('p');
-    closeButton.classList.add('popup-close');
-    closeButton.textContent = 'X';
-    closeButton.addEventListener('click', function () {
-      popup.style.display = 'none';
-    });
-    messageContainer.appendChild(closeButton);
-
-    // Add the message container to the popup container
-    popup.appendChild(messageContainer);
-
-    // Add the popup container to the body
-    document.body.appendChild(popup);
-
-    return popup;
-  }
-
-  // Show the popup
-  function showPopup() {
-    var popup = createPopup('Patient Not Logged In!!!');
-    popup.style.display = 'flex';
-
-    // Close the popup when clicked outside of the popup box
-    popup.addEventListener('click', function (event) {
-      if (event.target.classList.contains('popup')) {
-        popup.style.display = 'none';
-      }
-    });
-  }
-
-  function closePopup() {
-    const popup = document.getElementsByClassName('popup');
-    if (popup) {
-      for (var i = 0; i < popup.length; i++) {
-        popup[i].style.display = 'none';
-      }
+              localStorage.setItem('userData', JSON.stringify(userData));
+              showNavigateRightButton(171, userData);
+              replacePlaceholders(userData);
+            }
+          })
+          .catch(() => {
+            console.log('Error:');
+          });
+      }, 5000);
     }
   }
+
+  function getAbbrFromTimeZonesInStandardFormate(timeZone) {
+    var abbr = null;
+    switch (timeZone) {
+      case "America/Puerto_Rico": abbr = "Atlantic";
+        break;
+      case "America/New_York": abbr = "Eastern";
+        break;
+      case "America/Chicago": abbr = "Central";
+        break;
+      case "America/Phoenix": abbr = "Arizona";
+        break;
+      case "America/Denver": abbr = "Mountain";
+        break;
+      case "America/Los_Angeles": abbr = "Pacific";
+        break;
+      case "America/Anchorage": abbr = "Alaska";
+        break;
+      case "Pacific/Honolulu": abbr = "Hawaii";
+        break;
+      default:
+        abbr = "Mountain";
+    }
+    return abbr;
+  }
+
+  function gotoCalendlyWidget() {
+    Reveal.setState({
+      indexh: 171,  //18 number slide is for personal information
+      indexv: 0,
+      overview: false,
+      paused: false
+    });
+  }
+  //----------------------------------------------------------------------------------------------//
+
 });
 
-function onlyNumberKey(evt) {
-  // Only ASCII character in that range allowed
-  var ASCIICode = (evt.which) ? evt.which : evt.keyCode
-  if ((ASCIICode < 48 || ASCIICode > 57))
-    return false;
-  return true;
-}
 
-window.onlyNumberKey = onlyNumberKey;
-
-const togglePassword = document.querySelectorAll('.togglePassword');
-const password = document.querySelectorAll('.password');
-if (togglePassword != null && togglePassword.length > 0) {
-  togglePassword[0].addEventListener('click', function (e) {
-    // toggle the type attribute
-    const type = password[0].getAttribute('type') === 'password' ? 'text' : 'password';
-    password[0].setAttribute('type', type);
-    // toggle the eye slash icon
-    this.classList.toggle('fa-eye-slash');
-  });
-}

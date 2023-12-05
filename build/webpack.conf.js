@@ -8,9 +8,7 @@ const frontend = {
   target:'web',
   entry:{
     'index':'./plugin/index.js',
-    'adminIndex':'./plugin/adminIndex.js',
-    'master':'./plugin/master.js',
-    'client':'./plugin/client.js'
+    'adminIndex':'./plugin/adminIndex.js'
   },
   mode: 'production',
   output: {
@@ -22,7 +20,9 @@ const frontend = {
     plugins: [
         new CopyWebpackPlugin({
             patterns: [
-                { from: 'images' }
+                { from: 'images' },
+                { from: 'credentials.json' },
+                { from: 'package.json' }
             ]
         })
     ]
