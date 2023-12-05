@@ -53,7 +53,8 @@ document.addEventListener("DOMContentLoaded", function () {
   window.showNavigateRightButton = showNavigateRightButton;
   window.openCalendly = openCalendly;
   window.fetchData = fetchData;
-
+  window.showCustomAlert = showCustomAlert;
+  window.closeAlert = closeAlert ;
   //Globale variables
   var labels = document.body.querySelectorAll('label');
   var HTMLPlaceholderClasses = [...new Set(Array.from(labels).map(label => label.className))];
@@ -157,7 +158,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(response => response.json())
             .then((response) => {
               if (response.status == 500) {
-                alert(`Error : ${response.message}`);
+                showCustomAlert(response.message);
               } else if (response.status == 200 && response.data) {
                 if (Object.entries(response.data.data).length > 0 && response.data.data.insuranceInfo) {
                   openCalendly('schedule');
@@ -165,7 +166,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
               }
             }).catch(error => {
-              alert(`Error : ${error.message}`);
+              showCustomAlert(error.message);
             });
         } catch (error) {
           console.error('Error:', error.message);
@@ -187,7 +188,7 @@ document.addEventListener("DOMContentLoaded", function () {
             indexh: mandatoryFields[missingFields[0]][0],
             indexv: 0
           });
-          alert(warnings.join(' '));
+          showCustomAlert(warnings.join(' '));
           return false;
         }
         return true;
@@ -477,6 +478,16 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
   //----------------------------------------------------------------------------------------------//
+
+  function showCustomAlert(message) {
+    const alertBox = document.getElementById('custom-alert');
+    document.getElementById('alert-message').innerText = message;
+    alertBox.style.display = 'block';
+  }
+
+  function closeAlert() {
+    document.getElementById('custom-alert').style.display = 'none';
+  }
 
 });
 

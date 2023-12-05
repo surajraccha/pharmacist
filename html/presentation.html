@@ -20,7 +20,38 @@
 		<meta name="csrf-param" content="authenticity_token">
 <meta name="csrf-token" content="N2hgjhmSkYxVb6a/O9sTlqjjGlBUjdOsGOGhAi4RIZUsjktWEuXv7Ky97b8aHgj/B6ggK8Qens8SPfQSQlWMlg==">
 		<style id="user-css-output" type="text/css"></style>
-		<script src="https://code.jquery.com/jquery-3.5.0.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.31/moment-timezone-with-data.min.js"></script><script src="https://assets.calendly.com/assets/external/widget.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA==" crossorigin="anonymous"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.1.0/css/font-awesome.min.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css"><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css"><link rel="shortcut icon" href="ASD_Logo.png" type="image/x-icon"></head>
+	<script src="https://code.jquery.com/jquery-3.5.0.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.31/moment-timezone-with-data.min.js"></script><script src="https://assets.calendly.com/assets/external/widget.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA==" crossorigin="anonymous"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.1.0/css/font-awesome.min.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css"><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css"><link rel="shortcut icon" href="ASD_Logo.png" type="image/x-icon">
+        <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        #custom-alert {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+			z-index: 1;
+        }
+
+        #custom-alert h2 {
+            margin-top: 0;
+        }
+
+        #custom-alert .close-btn {
+            cursor: pointer;
+            float: right;
+            font-weight: bold;
+        }
+        </style>
+        </head>
 	<body class="reveal-viewport theme-font-palatino theme-color-white-blue" "="">
 		<div class="reveal">
 			<div class="slides">
@@ -6654,4 +6685,9 @@ var Tl={id:"highlight",HIGHLIGHT_STEP_DELIMITER:"|",HIGHLIGHT_LINE_DELIMITER:","
             <button onclick="closeCustomPopup()" style="font-size: 16px; padding: 10px 20px; background-color: #f44336; color: #fff; border: none; border-radius: 5px; cursor: pointer;">No</button>
         </div>
     </div>
-    <script src="./../plugin/index.js"></script></body></html>
+    <script src="./../plugin/index.js"></script>
+        <div id="custom-alert">
+            <span class="close-btn" onclick="closeAlert()">X</span>
+            <h1>Error</h1>
+            <h3 id="alert-message"></h3>
+        </div></body></html>

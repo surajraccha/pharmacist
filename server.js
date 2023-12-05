@@ -177,24 +177,24 @@ function processFile() {
     if (document.getElementsByClassName("slides") == undefined || document.getElementsByClassName("slides").length == 0) return false;
 
 
-function createElementAndAppend(elementType, attributesMap, parentElement) {
-    const element = document.createElement(elementType);
-    // Set attributes based on the provided map
-    for (const [attribute, value] of Object.entries(attributesMap)) {
-        element.setAttribute(attribute, value);
+    function createElementAndAppend(elementType, attributesMap, parentElement) {
+        const element = document.createElement(elementType);
+        // Set attributes based on the provided map
+        for (const [attribute, value] of Object.entries(attributesMap)) {
+            element.setAttribute(attribute, value);
+        }
+        // Append the element to the specified parent
+        parentElement.appendChild(element);
     }
-    // Append the element to the specified parent
-    parentElement.appendChild(element);
-}
 
-function setAttributesById(elementId, attributeName, functionName) {
-    const elementList = document.querySelectorAll(`#${elementId}`);
-    if (elementList && elementList.length > 0) {
-        elementList.forEach(element => {
-            element.setAttribute(attributeName, functionName);
-        });
+    function setAttributesById(elementId, attributeName, functionName) {
+        const elementList = document.querySelectorAll(`#${elementId}`);
+        if (elementList && elementList.length > 0) {
+            elementList.forEach(element => {
+                element.setAttribute(attributeName, functionName);
+            });
+        }
     }
-}
 
     // Head script elements
     createElementAndAppend('script', { 'src': 'https://code.jquery.com/jquery-3.5.0.js' }, document.head);
@@ -208,7 +208,7 @@ function setAttributesById(elementId, attributeName, functionName) {
         'src': 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js',
         'integrity': 'sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA==',
         'crossorigin': 'anonymous'
-        }, document.head);
+    }, document.head);
 
     // Head Link elements
     createElementAndAppend('link', {
@@ -238,11 +238,54 @@ function setAttributesById(elementId, attributeName, functionName) {
     // createElementAndAppend('script', {
     //     'src': '/socket.io/socket.io.js'
     // }, document.body);
-    
+
     createElementAndAppend('script', {
         'src': './../index.js'
     }, document.body);
-    
+
+    // Inject the custom alert box code into the head of the HTML
+    const customAlertCode = `
+        <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        #custom-alert {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+        }
+
+        #custom-alert h2 {
+            margin-top: 0;
+        }
+
+        #custom-alert .close-btn {
+            cursor: pointer;
+            float: right;
+            font-weight: bold;
+        }
+        </style>
+        `;
+
+    document.head.innerHTML += customAlertCode;
+    document.body.innerHTML += `
+        <div id="custom-alert">
+            <span class="close-btn" onclick="closeAlert()">X</span>
+            <h1>Error</h1>
+            <h3 id="alert-message"></h3>
+        </div>`;
+
+
     setAttributesById('new_patient', 'onclick', 'openNewPatient()');
     setAttributesById('personal_information', 'onclick', 'openPersonalInformation()');
     setAttributesById('calendly_reschedule', 'onclick', "openCalendly('reschedule')");
@@ -252,7 +295,7 @@ function setAttributesById(elementId, attributeName, functionName) {
     return true;
 }
 
-function getPopUpHtml(){
+function getPopUpHtml() {
     return `
     <div class="custom-popup" id="customPopup" style="position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; background-color: rgb(90 81 81 / 50%); display: none; z-index: 1000; align-items: center; justify-content: center;">
         <div style="background-color: #fff; padding: 20px; border-radius: 10px; text-align: center;">
@@ -263,5 +306,6 @@ function getPopUpHtml(){
     </div>
     `;
 }
+
 
 console.log("reveal.js: Multiplex running on port " + opts.port);
