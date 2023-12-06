@@ -124,6 +124,14 @@ document.addEventListener("DOMContentLoaded", function () {
       inputFields.forEach(element => {
         element.addEventListener(element.tagName === 'SELECT' ? 'change' : 'input', saveInputFieldData);
       });
+
+      const storedData = localStorage.getItem('userData');
+      const userData = storedData ? JSON.parse(storedData) : {};
+
+      if(userData && userData["payment_status"] == 'fulfilled'){
+        document.getElementById("charge_credit_card").disabled = true;
+      }
+     
     });
 
     Reveal.on('slidechanged', (event) => {
@@ -473,12 +481,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function closeAlert() {
     document.getElementById('custom-alert').style.display = 'none';
-    ocument.getElementById('alert-heading').innerText = "";
+    document.getElementById('alert-heading').innerText = "";
     document.getElementById('alert-message').innerText = "";
   }
   //----------------------------------------------------------------------------//
 
-  //------------------------------------------order creation function -------------------------------//
+  //------------------------------------------payment function -------------------------------//
   function chargeCreditCard() {
     const storedData = localStorage.getItem('userData');
     const userData = storedData ? JSON.parse(storedData) : {};
@@ -506,18 +514,21 @@ document.addEventListener("DOMContentLoaded", function () {
           .then((response) => {
             if (response.status == 500) {
               showCustomAlert('Error',response.message,false);
+              button.disabled = false;
             } else if (response.status == 200 && response.data) {
               if (Object.entries(response.data.data).length > 0 && Object.entries(response.data.data.paymentInfo).length > 0) {
                 openCalendly('schedule');
                 localStorage.setItem("order", JSON.stringify(response.data.data));
                 showCustomAlert('Success',response.message,true);
-
+                userData["payment_status"] = "fulfilled";
+                localStorage.setItem("userData", JSON.stringify(userData));
               }
             }
-            button.disabled = false;
             loader.parentNode.removeChild(loader);
           }).catch(error => {
             showCustomAlert('Error',error.message,false);
+            button.disabled = false;
+            loader.parentNode.removeChild(loader);
           });
       } catch (error) {
         console.error('Error:', error.message);
