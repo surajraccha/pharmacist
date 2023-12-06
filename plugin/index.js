@@ -18,10 +18,10 @@ const { SOCKET_DOMAIN, API_URL } = config[envirnoment];
 // Define a mapping between slide index and the field to check
 const slideFieldMapping = {
   18: ["personal_information_first_name", "personal_information_last_name"],
-  171: ["Sleep_Consultation_Date_Patient"]
+  172: ["Sleep_Consultation_Date_Patient"]
 };
 
-const mandatoryFields = {
+const orderMandatoryFields = {
   personal_information_first_name: [18, "Personal Information First Name"],
   personal_information_last_name: [18, "Personal Information Last Name"],
   personal_information_address1: [20, "Personal Information Address"],
@@ -30,7 +30,10 @@ const mandatoryFields = {
   personal_information_zipcode: [20, "Personal Information Zip Code"],
   personal_information_mobile_phone: [22, "Personal Information Mobile Phone"],
   personal_information_email: [26, "Personal Information Email"],
-  patient_quest_Patient_Time_Zone: [31, "Patient Questionnaire Time Zone"],
+  patient_quest_Patient_Time_Zone: [31, "Patient Questionnaire Time Zone"]
+};
+
+const paymentMandatoryFields = {
   payment_information_first_name: [138, "Payment Information First Name"],
   payment_information_last_name: [138, "Payment Information Last Name"],
   payment_information_address: [139, "Payment Information Address"],
@@ -39,9 +42,9 @@ const mandatoryFields = {
   payment_information_zip: [139, "Payment Information Zip"],
   payment_information_credit_card_number: [141, "Payment Information Credit Card Number"],
   payment_information_expiration_date: [142, "Payment Information Expiration Date"],
-  payment_information_credit_card_security_code: [143, "Payment Information Credit Card Security Code"]
-};
-
+  payment_information_credit_card_security_code: [143, "Payment Information Credit Card Security Code"],
+  payment_information_charge_amount :[144, "Payment Information Charge Amount"]
+}
 
 document.addEventListener("DOMContentLoaded", function () {
   //function declaration
@@ -54,7 +57,10 @@ document.addEventListener("DOMContentLoaded", function () {
   window.openCalendly = openCalendly;
   window.fetchData = fetchData;
   window.showCustomAlert = showCustomAlert;
-  window.closeAlert = closeAlert ;
+  window.closeAlert = closeAlert;
+  window.chargeCreditCard = chargeCreditCard;
+  window.checkAllMandatoryFieldsCompleted = checkAllMandatoryFieldsCompleted;
+
   //Globale variables
   var labels = document.body.querySelectorAll('label');
   var HTMLPlaceholderClasses = [...new Set(Array.from(labels).map(label => label.className))];
@@ -114,12 +120,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     Reveal.addEventListener('ready', function (event) {
-      Reveal.setState({
-        indexh: 3,
-        indexv: 0
-      }); //go to slide horizontal 4 on initialization
-
-
+      Reveal.setState({indexh: 3,indexv: 0}); //go to slide horizontal 4 on initialization
       inputFields.forEach(element => {
         element.addEventListener(element.tagName === 'SELECT' ? 'change' : 'input', saveInputFieldData);
       });
@@ -144,7 +145,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
 
-      if (event.indexh > 145 && checkAllMandatoryFieldsCompleted() && !localStorage.getItem("order")) {
+      if (event.indexh >= 33 && checkAllMandatoryFieldsCompleted(orderMandatoryFields) && !localStorage.getItem("order")) {
         try {
           const requestOptions = {
             method: 'POST',
@@ -179,21 +180,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       showNavigateRightButton(event.indexh, userData);
 
-      function checkAllMandatoryFieldsCompleted() {
-        const missingFields = Object.keys(mandatoryFields).filter(key => !userData[key]);
-
-        if (missingFields.length > 0) {
-          const warnings = missingFields.map(field => `${mandatoryFields[field][1]} is missing.\n`);
-          Reveal.setState({
-            indexh: mandatoryFields[missingFields[0]][0],
-            indexv: 0
-          });
-          showCustomAlert(warnings.join(' '));
-          return false;
-        }
-        return true;
-      }
-
       function transformUserDataToOrderDTO(userData) {
         return {
           "customer": {
@@ -211,23 +197,11 @@ document.addEventListener("DOMContentLoaded", function () {
           },
           "timeZone": userData["patient_quest_Patient_Time_Zone"] || "",
           "paymentInfo": {
-            "paymentInfoFirstName": userData["payment_information_first_name"] || "",
-            "paymentInfoLastName": userData["payment_information_last_name"] || "",
-            "paymentInfoAddress": {
-              "address": userData["payment_information_address"] || "",
-              "city": userData["payment_information_city"] || "",
-              "state": userData["payment_information_state"] || "",
-              "zip": userData["payment_information_zip"] || ""
-            },
-            "paymentInfoCreditCardNumber": userData["payment_information_credit_card_number"] || "",
-            "paymentInfoExpDate": userData["payment_information_expiration_date"] || "",
-            "paymentInfoCreditCardSecurityCode": userData["payment_information_credit_card_security_code"] || ""
           },
           "hadSleepStudy": userData["hadSleepStudy"] || "",
           "leadType": "patient"
         };
       }
-
     });
 
     //---------------------------------------------------------------------//
@@ -412,9 +386,11 @@ document.addEventListener("DOMContentLoaded", function () {
           })
           .then(response => {
             if (response) {
-              localStorage.setItem('order', JSON.stringify(response));
-              const storedData = localStorage.getItem('userData');
-              const userData = storedData ? JSON.parse(storedData) : {};
+              const storedData = localStorage.getItem('order');
+              const leadData = storedData ? JSON.parse(storedData) : {};
+
+              const storedData1 = localStorage.getItem('userData');
+              const userData = storedData1 ? JSON.parse(storedData1) : {};
 
               if ((calendlyEvent == 'schedule' || calendlyEvent == 'reschedule') && response.insuranceInfo.coverageReviewAppointmentId) {
                 const mdtTime = moment(response.insuranceInfo.coverageReviewDate).tz(DATE_DEFAULT_TIMEZONE_SET);
@@ -424,21 +400,25 @@ document.addEventListener("DOMContentLoaded", function () {
                 userData["Sleep_Consultation_Date_Patient"] = consultationDatePatient;
                 userData["Sleep_Consultation_Time_Patient"] = consultationTimePatient;
                 clearInterval(intervalId);
+                showNavigateRightButton(172, userData);
+                localStorage.setItem('userData', JSON.stringify(userData));
+                replacePlaceholders(userData);
+
               } else if (calendlyEvent == 'cancel') {
                 if (!response.insuranceInfo.coverageReviewAppointmentId) {
                   delete userData["Sleep_Consultation_Date_Patient"];
                   delete userData["Sleep_Consultation_Time_Patient"];
                   clearInterval(intervalId);
+                  localStorage.setItem('userData', JSON.stringify(userData));
+                  replacePlaceholders(userData);
                 }
               }
-
-              localStorage.setItem('userData', JSON.stringify(userData));
-              showNavigateRightButton(171, userData);
-              replacePlaceholders(userData);
+              leadData.insuranceInfo = response.insuranceInfo;
+              localStorage.setItem('order', JSON.stringify(leadData)); 
             }
           })
-          .catch(() => {
-            console.log('Error:');
+          .catch((error) => {
+            console.log(error);
           });
       }, 5000);
     }
@@ -479,6 +459,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   //----------------------------------------------------------------------------------------------//
 
+  //------------------ alert pop up-------------------------------------------//
   function showCustomAlert(message) {
     const alertBox = document.getElementById('custom-alert');
     document.getElementById('alert-message').innerText = message;
@@ -488,6 +469,100 @@ document.addEventListener("DOMContentLoaded", function () {
   function closeAlert() {
     document.getElementById('custom-alert').style.display = 'none';
   }
+  //----------------------------------------------------------------------------//
+
+  //------------------------------------------order creation function -------------------------------//
+  function chargeCreditCard() {
+    const storedData = localStorage.getItem('userData');
+    const userData = storedData ? JSON.parse(storedData) : {};
+
+    if (checkAllMandatoryFieldsCompleted(paymentMandatoryFields) && localStorage.getItem("order")) {
+      try {
+        var button = document.getElementById("charge_credit_card");
+        button.disabled = true;
+    
+        var loader = document.createElement("div");
+        loader.id = "loader";
+        loader.innerHTML = "Processing,Please Wait...";
+        button.parentNode.insertBefore(loader, button.nextSibling);
+
+        const requestOptions = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(transformPaymentDataToOrderDTO(userData)),
+        };
+
+        fetch(API_URL + "charge-customer", requestOptions)
+          .then(response => response.json())
+          .then((response) => {
+            if (response.status == 500) {
+              showCustomAlert(response.message);
+            } else if (response.status == 200 && response.data) {
+              if (Object.entries(response.data.data).length > 0 && Object.entries(response.data.data.paymentInfo).length > 0) {
+                openCalendly('schedule');
+                localStorage.setItem("order", JSON.stringify(response.data.data));
+              }
+            }
+            button.disabled = false;
+            loader.parentNode.removeChild(loader);
+          }).catch(error => {
+            showCustomAlert(error.message);
+          });
+      } catch (error) {
+        console.error('Error:', error.message);
+        button.disabled = false;
+        loader.parentNode.removeChild(loader);
+      }
+    }
+  }
+
+  function checkAllMandatoryFieldsCompleted(mandatoryFields) {
+    const storedData = localStorage.getItem('userData');
+    const userData = storedData ? JSON.parse(storedData) : {};
+
+    const missingFields = Object.keys(mandatoryFields).filter(key => !userData[key]);
+
+    if (missingFields.length > 0) {
+      const warnings = missingFields.map(field => `${mandatoryFields[field][1]} is missing.\n`);
+      Reveal.setState({
+        indexh: mandatoryFields[missingFields[0]][0],
+        indexv: 0
+      });
+      showCustomAlert(warnings.join(' '));
+      return false;
+    }
+    return true;
+  }
+
+  function transformPaymentDataToOrderDTO(userData) {
+
+    const storedData = localStorage.getItem('order');
+    const orderData = storedData ? JSON.parse(storedData) : {};
+    const paymentInfo = {
+      "paymentInfoFirstName": userData["payment_information_first_name"] || "",
+      "paymentInfoLastName": userData["payment_information_last_name"] || "",
+      "paymentInfoPhone": userData["personal_information_mobile_phone"] || "",
+      "paymentInfoAddress": {
+        "address": userData["payment_information_address"] || "",
+        "city": userData["payment_information_city"] || "",
+        "state": userData["payment_information_state"] || "",
+        "zip": userData["payment_information_zip"] || ""
+      },
+      "paymentInfoCreditCardNumber": userData["payment_information_credit_card_number"] || "",
+      "paymentInfoExpDate": userData["payment_information_expiration_date"] || "",
+      "paymentInfoCreditCardSecurityCode": userData["payment_information_credit_card_security_code"] || "",
+      "paymentHasInfo": "yes",
+      "paymentInformationPaymentType": "Charging",
+      "paymentInformationChargeAmount": userData["payment_information_charge_amount"]
+    };
+    orderData.paymentInfo = paymentInfo;
+
+    return orderData;
+  }
+
+  //----------------------------------------------------------------------------//
 
 });
 

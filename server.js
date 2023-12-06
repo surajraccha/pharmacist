@@ -240,7 +240,7 @@ function processFile() {
     // }, document.body);
 
     createElementAndAppend('script', {
-        'src': './../index.js'
+        'src': './../plugin/index.js'
     }, document.body);
 
     // Inject the custom alert box code into the head of the HTML
@@ -290,6 +290,12 @@ function processFile() {
     setAttributesById('personal_information', 'onclick', 'openPersonalInformation()');
     setAttributesById('calendly_reschedule', 'onclick', "openCalendly('reschedule')");
     setAttributesById('calendly_cancel', 'onclick', "openCalendly('cancel')");
+    setAttributesById('charge_credit_card', 'onclick', 'chargeCreditCard()');
+
+
+    setAttributesById('payment_information_credit_card_number', 'oninput', "this.value = this.value.replace(/[^0-9.]/g, '');");
+    setAttributesById('payment_information_credit_card_security_code', 'oninput', "this.value = this.value.replace(/[^0-9.]/g, '');");
+    setAttributesById('payment_information_charge_amount', 'oninput', "this.value = this.value.replace(/[^0-9.]/g, '');");
 
     fs.writeFileSync(opts.baseDir + '/html/presentation.html', root.serialize(), 'utf-8');
     return true;
