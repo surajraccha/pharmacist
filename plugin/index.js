@@ -159,15 +159,16 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(response => response.json())
             .then((response) => {
               if (response.status == 500) {
-                showCustomAlert(response.message);
+                showCustomAlert('Error',response.message,false);
               } else if (response.status == 200 && response.data) {
                 if (Object.entries(response.data.data).length > 0 && response.data.data.insuranceInfo) {
                   openCalendly('schedule');
                   localStorage.setItem("order", JSON.stringify(response.data.data));
+                  showCustomAlert('Success',response.message,true);
                 }
               }
             }).catch(error => {
-              showCustomAlert(error.message);
+              showCustomAlert('Error',error.message,false);
             });
         } catch (error) {
           console.error('Error:', error.message);
@@ -462,14 +463,18 @@ document.addEventListener("DOMContentLoaded", function () {
   //----------------------------------------------------------------------------------------------//
 
   //------------------ alert pop up-------------------------------------------//
-  function showCustomAlert(message) {
+  function showCustomAlert(heading,message,success) {
     const alertBox = document.getElementById('custom-alert');
+    document.getElementById('alert-heading').innerText = heading;
     document.getElementById('alert-message').innerText = message;
+    alertBox.style.backgroundColor = success ? '#90EE90' : '#f8d7da';
     alertBox.style.display = 'block';
-  }
+    }
 
   function closeAlert() {
     document.getElementById('custom-alert').style.display = 'none';
+    ocument.getElementById('alert-heading').innerText = "";
+    document.getElementById('alert-message').innerText = "";
   }
   //----------------------------------------------------------------------------//
 
@@ -500,17 +505,19 @@ document.addEventListener("DOMContentLoaded", function () {
           .then(response => response.json())
           .then((response) => {
             if (response.status == 500) {
-              showCustomAlert(response.message);
+              showCustomAlert('Error',response.message,false);
             } else if (response.status == 200 && response.data) {
               if (Object.entries(response.data.data).length > 0 && Object.entries(response.data.data.paymentInfo).length > 0) {
                 openCalendly('schedule');
                 localStorage.setItem("order", JSON.stringify(response.data.data));
+                showCustomAlert('Success',response.message,true);
+
               }
             }
             button.disabled = false;
             loader.parentNode.removeChild(loader);
           }).catch(error => {
-            showCustomAlert(error.message);
+            showCustomAlert('Error',error.message,false);
           });
       } catch (error) {
         console.error('Error:', error.message);
@@ -532,7 +539,7 @@ document.addEventListener("DOMContentLoaded", function () {
         indexh: mandatoryFields[missingFields[0]][0],
         indexv: 0
       });
-      showCustomAlert(warnings.join(' '));
+      showCustomAlert('Error',warnings.join(' '),false);
       return false;
     }
     return true;

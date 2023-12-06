@@ -256,7 +256,6 @@ function processFile() {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: #f8d7da;
             color: #721c24;
             padding: 15px;
             border: 1px solid #f5c6cb;
@@ -281,7 +280,7 @@ function processFile() {
     document.body.innerHTML += `
         <div id="custom-alert">
             <span class="close-btn" onclick="closeAlert()">X</span>
-            <h1>Error</h1>
+            <h1 id="alert-heading"></h1>
             <h3 id="alert-message"></h3>
         </div>`;
 
