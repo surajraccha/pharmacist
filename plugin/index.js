@@ -172,6 +172,8 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (error) {
           console.error('Error:', error.message);
         }
+      }else if(event.indexh >= 145){
+        checkAllMandatoryFieldsCompleted(paymentMandatoryFields)
       }
 
       if (localStorage.getItem("order") && document.getElementById('calendly_div').children.length == 0) {
