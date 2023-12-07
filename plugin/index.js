@@ -154,7 +154,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
 
-      if (event.indexh >= 33 && checkAllMandatoryFieldsCompleted(orderMandatoryFields) && !localStorage.getItem("order")) {
+      if (event.indexh >= 25 && checkAllMandatoryFieldsCompleted(orderMandatoryFields) && !localStorage.getItem("order")) {
         try {
           const requestOptions = {
             method: 'POST',
