@@ -15,38 +15,38 @@ const config = {
 };
 
 const { API_URL } = config[envirnoment];
-const SLIDE_PERSONAL_INFORMATION = 18;
-const SLIDE_SLEEP_CONSULTATION = 172;
-const SLIDE_PAYMENT_INFORMATION = 145;
+const SLIDE_PERSONAL_INFORMATION = 15;
+const SLIDE_SLEEP_CONSULTATION = 33;
+const SLIDE_PAYMENT_INFORMATION = 32;
 // Define a mapping between slide index and the field to check
 const slideFieldMapping = {
-  18: ["personal_information_first_name", "personal_information_last_name"],
-  172: ["Sleep_Consultation_Date_Patient"]
+  15: ["personal_information_first_name", "personal_information_last_name"],
+  33: ["Sleep_Consultation_Date_Patient"]
 };
 
 const orderMandatoryFields = {
-  personal_information_first_name: [18, "Personal Information First Name"],
-  personal_information_last_name: [18, "Personal Information Last Name"],
-  personal_information_address1: [20, "Personal Information Address"],
-  personal_information_city: [20, "Personal Information City"],
-  personal_information_state: [20, "Personal Information State"],
-  personal_information_zipcode: [20, "Personal Information Zip Code"],
-  personal_information_mobile_phone: [22, "Personal Information Mobile Phone"],
-  personal_information_email: [26, "Personal Information Email"],
-  patient_quest_Patient_Time_Zone: [31, "Patient Questionnaire Time Zone"]
+  personal_information_first_name: [15, "Personal Information First Name"],
+  personal_information_last_name: [15, "Personal Information Last Name"],
+  personal_information_address1: [17, "Personal Information Address"],
+  personal_information_city: [17, "Personal Information City"],
+  personal_information_state: [17, "Personal Information State"],
+  personal_information_zipcode: [17, "Personal Information Zip Code"],
+  personal_information_mobile_phone: [19, "Personal Information Mobile Phone"],
+  personal_information_email: [21, "Personal Information Email"],
+  patient_quest_Patient_Time_Zone: [23, "Patient Questionnaire Time Zone"]
 };
 
 const paymentMandatoryFields = {
-  payment_information_first_name: [138, "Payment Information First Name"],
-  payment_information_last_name: [138, "Payment Information Last Name"],
-  payment_information_address: [139, "Payment Information Address"],
-  payment_information_city: [139, "Payment Information City"],
-  payment_information_state: [139, "Payment Information State"],
-  payment_information_zip: [139, "Payment Information Zip"],
-  payment_information_credit_card_number: [141, "Payment Information Credit Card Number"],
-  payment_information_expiration_date: [142, "Payment Information Expiration Date"],
-  payment_information_credit_card_security_code: [143, "Payment Information Credit Card Security Code"],
-  payment_information_charge_amount :[144, "Payment Information Charge Amount"]
+  payment_information_first_name: [25, "Payment Information First Name"],
+  payment_information_last_name: [25, "Payment Information Last Name"],
+  payment_information_address: [26, "Payment Information Address"],
+  payment_information_city: [26, "Payment Information City"],
+  payment_information_state: [26, "Payment Information State"],
+  payment_information_zip: [26, "Payment Information Zip"],
+  payment_information_credit_card_number: [28, "Payment Information Credit Card Number"],
+  payment_information_expiration_date: [29, "Payment Information Expiration Date"],
+  payment_information_credit_card_security_code: [30, "Payment Information Credit Card Security Code"],
+  payment_information_charge_amount :[31, "Payment Information Charge Amount"]
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -123,7 +123,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     Reveal.addEventListener('ready', function (event) {
-      Reveal.setState({indexh: 3,indexv: 0}); //go to slide horizontal 4 on initialization
       inputFields.forEach(element => {
         element.addEventListener(element.tagName === 'SELECT' ? 'change' : 'input', saveInputFieldData);
       });
@@ -593,6 +592,52 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   //----------------------------------------------------------------------------//
+
+  addValidationToZipCode("personal_information_zipcode");
+  addValidationToZipCode("payment_information_zip");
+  
+  function addValidationToZipCode(elementId){
+    document.getElementById(elementId).addEventListener("input", function(event) {
+      const formControl = event.target;
+      let transformedInput = formControl.value.replace(/[^0-9.]+/g, "");
+  
+      if (transformedInput.length > 5) {
+          transformedInput = transformedInput.slice(0, 5) + "-" + transformedInput.slice(5, 10);
+      } else if (transformedInput.length === 5) {
+          transformedInput = transformedInput.replace('-', '');
+      }
+  
+      formControl.value = transformedInput.slice(0, 10);
+    });
+  }
+
+
+  document.getElementById("personal_information_mobile_phone").addEventListener("input", function(event) {
+    const formControl = event.target;
+    let transformedInput = formControl.value.replace(/[^0-9]+/g, "");
+
+    if (transformedInput.length > 11) {
+        transformedInput = transformedInput.slice(0, 11);
+    }
+    formControl.value = transformedInput;
+});
+
+document.getElementById("personal_information_email").addEventListener("input", function(event) {
+  const formControl = event.target;
+  const transformedInput = formControl.value.trim();
+
+  // Simple email format validation using a regular expression
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (emailRegex.test(transformedInput)) {
+      formControl.classList.remove("invalid");
+      formControl.classList.add("valid");
+  } else {
+      formControl.classList.remove("valid");
+      formControl.classList.add("invalid");
+  }
+
+});
 
 });
 

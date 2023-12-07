@@ -286,9 +286,17 @@ function processFile() {
 
 
     setAttributesById('new_patient', 'onclick', 'openNewPatient()');
+    setAttributesById('new_patient', 'class', 'btn btn-primary btn-sm');
+
     setAttributesById('personal_information', 'onclick', 'openPersonalInformation()');
+    setAttributesById('personal_information', 'class', 'btn btn-primary btn-sm');
+
     setAttributesById('calendly_reschedule', 'onclick', "openCalendly('reschedule')");
+    setAttributesById('calendly_reschedule', 'class', 'btn btn-primary btn-sm');
+
     setAttributesById('calendly_cancel', 'onclick', "openCalendly('cancel')");
+    setAttributesById('calendly_cancel', 'class', 'btn btn-primary btn-sm');
+
     setAttributesById('charge_credit_card', 'onclick', 'chargeCreditCard()');
 
 
