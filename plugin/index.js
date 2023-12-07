@@ -14,7 +14,10 @@ const config = {
   }
 };
 
-const { SOCKET_DOMAIN, API_URL } = config[envirnoment];
+const { API_URL } = config[envirnoment];
+const SLIDE_PERSONAL_INFORMATION = 18;
+const SLIDE_SLEEP_CONSULTATION = 172;
+const SLIDE_PAYMENT_INFORMATION = 145;
 // Define a mapping between slide index and the field to check
 const slideFieldMapping = {
   18: ["personal_information_first_name", "personal_information_last_name"],
@@ -131,7 +134,6 @@ document.addEventListener("DOMContentLoaded", function () {
       if(userData && userData["payment_status"] == 'fulfilled'){
         document.getElementById("charge_credit_card").disabled = true;
       }
-     
     });
 
     Reveal.on('slidechanged', (event) => {
@@ -170,8 +172,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 showCustomAlert('Error',response.message,false);
               } else if (response.status == 200 && response.data) {
                 if (Object.entries(response.data.data).length > 0 && response.data.data.insuranceInfo) {
-                  openCalendly('schedule');
                   localStorage.setItem("order", JSON.stringify(response.data.data));
+                  userData["orderId"] = response.data.data.orderId;
+                  localStorage.setItem("userData", JSON.stringify(userData));
+
+                  openCalendly('schedule');
                   showCustomAlert('Success',response.message,true);
                 }
               }
@@ -181,7 +186,7 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (error) {
           console.error('Error:', error.message);
         }
-      }else if(event.indexh >= 145){
+      }else if(event.indexh >= SLIDE_PAYMENT_INFORMATION){
         checkAllMandatoryFieldsCompleted(paymentMandatoryFields)
       }
 
@@ -267,7 +272,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function openPersonalInformation() {
     Reveal.setState({
-      indexh: 18,  //18 number slide is for personal information
+      indexh: SLIDE_PERSONAL_INFORMATION,  //18 number slide is for personal information
       indexv: 0,
       overview: false,
       paused: false
@@ -410,22 +415,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 userData["Sleep_Consultation_Date_Patient"] = consultationDatePatient;
                 userData["Sleep_Consultation_Time_Patient"] = consultationTimePatient;
-                clearInterval(intervalId);
-                showNavigateRightButton(172, userData);
+               
                 localStorage.setItem('userData', JSON.stringify(userData));
                 replacePlaceholders(userData);
 
+                clearInterval(intervalId);
+                showNavigateRightButton(SLIDE_SLEEP_CONSULTATION, userData);
               } else if (calendlyEvent == 'cancel') {
                 if (!response.insuranceInfo.coverageReviewAppointmentId) {
                   delete userData["Sleep_Consultation_Date_Patient"];
                   delete userData["Sleep_Consultation_Time_Patient"];
-                  clearInterval(intervalId);
+
                   localStorage.setItem('userData', JSON.stringify(userData));
                   replacePlaceholders(userData);
+
+                  clearInterval(intervalId);
                 }
               }
-              leadData.insuranceInfo = response.insuranceInfo;
-              localStorage.setItem('order', JSON.stringify(leadData)); 
+              if(Object.keys(leadData).length > 0){
+                leadData.insuranceInfo = response.insuranceInfo;
+                localStorage.setItem('order', JSON.stringify(leadData)); 
+              }
             }
           })
           .catch((error) => {
@@ -462,7 +472,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function gotoCalendlyWidget() {
     Reveal.setState({
-      indexh: 171,  //18 number slide is for personal information
+      indexh: 171,  //go to calendly widget slide
       indexv: 0,
       overview: false,
       paused: false
