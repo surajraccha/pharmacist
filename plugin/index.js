@@ -119,6 +119,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (userData && userData["payment_status"] == 'fulfilled') {
         document.getElementById("charge_credit_card").disabled = true;
       }
+      document.getElementsByClassName("navigate-right")[0].style.display = 'block';
     });
 
     Reveal.on('slidechanged', (event) => {
@@ -161,6 +162,10 @@ document.addEventListener("DOMContentLoaded", function () {
         if (navigationElementList && navigationElementList.length > 0) {
           navigationElementList[0].style.display = 'none';
         }
+      } else {
+        if (navigationElementList && navigationElementList.length > 0) {
+          navigationElementList[0].style.display = 'block';
+        }
       }
 
       if (checkAllMandatoryFieldsCompleted(orderMandatoryFields) && !localStorage.getItem("order")) {
@@ -183,9 +188,7 @@ document.addEventListener("DOMContentLoaded", function () {
                   localStorage.setItem("order", JSON.stringify(response.data.data));
                   userData["orderId"] = response.data.data.orderId;
                   localStorage.setItem("userData", JSON.stringify(userData));
-
                   openCalendly('schedule');
-                  showCustomAlert('Success', response.message, true);
                 }
               }
             }).catch(error => {
@@ -196,7 +199,11 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
 
-      if (localStorage.getItem("order") && document.getElementById('calendly_div').children.length == 0) {
+      if (localStorage.getItem("order")) {
+        const calendlyDiv = document.getElementById('calendly_div');
+        while (calendlyDiv.firstChild) {    //remove old calendly widget and load new 
+          calendlyDiv.removeChild(calendlyDiv.firstChild);
+        }
         openCalendly('schedule');
       }
 
@@ -233,7 +240,11 @@ document.addEventListener("DOMContentLoaded", function () {
           case 'email':
             return /^.+@.+\..+$/.test(value);
           case 'tel':
-            return /^[0-9]{11}$/.test(value);
+            if (value.startsWith('1')) {
+              return /^[0-9]{11}$/.test(value);
+            } else {
+              return /^[0-9]{10}$/.test(value);
+            }
           case 'credit-card':
             return /^[0-9]{16}$/.test(value);
           case 'security-code':
@@ -270,6 +281,11 @@ document.addEventListener("DOMContentLoaded", function () {
           const userData = storedData ? JSON.parse(storedData) : {};
 
           validateInputs.forEach(function (input) {
+            var dataType = input.getAttribute('data-type');
+            if (dataType == 'tel' && input.value.startsWith('1')) {
+                // Remove the leading '1'
+                input.value = input.value.substring(1);
+            }
             input.value != null && input.value != "" ? (userData[input.name] = input.value) : delete userData[input.name];
           });
 
@@ -301,6 +317,7 @@ document.addEventListener("DOMContentLoaded", function () {
   //-----------------Pop up related functions -------------------//
   function openNewPatient() {
     document.getElementById('customPopup').style.display = 'flex';
+    document.getElementsByClassName("navigate-right")[0].style.display = 'block';
   }
 
   function closeCustomPopup() {
