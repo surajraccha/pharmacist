@@ -303,6 +303,11 @@ function processFile() {
     setAttributesById('payment_information_credit_card_number', 'oninput', "this.value = this.value.replace(/[^0-9.]/g, '');");
     setAttributesById('payment_information_credit_card_security_code', 'oninput', "this.value = this.value.replace(/[^0-9.]/g, '');");
     setAttributesById('payment_information_charge_amount', 'oninput', "this.value = this.value.replace(/[^0-9.]/g, '');");
+    setAttributesById('personal_information_mobile_phone', 'oninput', "this.value = this.value.replace(/[^0-9.]/g, '');");
+    setAttributesById('personal_information_zipcode', 'oninput', "this.value = this.value.replace(/[^0-9.]/g, '');");
+    setAttributesById('payment_information_zip', 'oninput', "this.value = this.value.replace(/[^0-9.]/g, '');");
+    setAttributesById('personal_information_zipcode', 'maxlength', "11");
+    setAttributesById('payment_information_zip', 'maxlength', "11");
 
     fs.writeFileSync(opts.baseDir + '/html/presentation.html', root.serialize(), 'utf-8');
     return true;

@@ -144,10 +144,12 @@ document.addEventListener("DOMContentLoaded", function () {
           updateNavigation();
           if (input.tagName == 'SELECT') {
             input.addEventListener('change', function () {
+              validateInput(input);
               updateNavigation();
             });
           } else if (input.tagName == 'INPUT') {
             input.addEventListener('input', function () {
+              validateInput(input);
               updateNavigation();
             });
           }

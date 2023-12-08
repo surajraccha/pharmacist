@@ -15,7 +15,6 @@ const frontend = {
     filename: '[name].js',
     path: path.resolve(__dirname, './../dist/')
   },
-  externals: [nodeExternals()],
   context: path.join(__dirname, './../'),
     plugins: [
         new CopyWebpackPlugin({
