@@ -15,38 +15,30 @@ const config = {
 };
 
 const { API_URL } = config[envirnoment];
-const SLIDE_PERSONAL_INFORMATION = 15;
-const SLIDE_SLEEP_CONSULTATION = 33;
-const SLIDE_PAYMENT_INFORMATION = 32;
-// Define a mapping between slide index and the field to check
-const slideFieldMapping = {
-  15: ["personal_information_first_name", "personal_information_last_name"],
-  33: ["Sleep_Consultation_Date_Patient"]
-};
 
 const orderMandatoryFields = {
-  personal_information_first_name: [15, "Personal Information First Name"],
-  personal_information_last_name: [15, "Personal Information Last Name"],
-  personal_information_address1: [17, "Personal Information Address"],
-  personal_information_city: [17, "Personal Information City"],
-  personal_information_state: [17, "Personal Information State"],
-  personal_information_zipcode: [17, "Personal Information Zip Code"],
-  personal_information_mobile_phone: [19, "Personal Information Mobile Phone"],
-  personal_information_email: [21, "Personal Information Email"],
-  patient_quest_Patient_Time_Zone: [23, "Patient Questionnaire Time Zone"]
+  personal_information_first_name: "Personal Information First Name",
+  personal_information_last_name: "Personal Information Last Name",
+  personal_information_address1: "Personal Information Address",
+  personal_information_city: "Personal Information City",
+  personal_information_state: "Personal Information State",
+  personal_information_zipcode: "Personal Information Zip Code",
+  personal_information_mobile_phone: "Personal Information Mobile Phone",
+  personal_information_email: "Personal Information Email",
+  patient_quest_Patient_Time_Zone: "Patient Questionnaire Time Zone"
 };
 
 const paymentMandatoryFields = {
-  payment_information_first_name: [25, "Payment Information First Name"],
-  payment_information_last_name: [25, "Payment Information Last Name"],
-  payment_information_address: [26, "Payment Information Address"],
-  payment_information_city: [26, "Payment Information City"],
-  payment_information_state: [26, "Payment Information State"],
-  payment_information_zip: [26, "Payment Information Zip"],
-  payment_information_credit_card_number: [28, "Payment Information Credit Card Number"],
-  payment_information_expiration_date: [29, "Payment Information Expiration Date"],
-  payment_information_credit_card_security_code: [30, "Payment Information Credit Card Security Code"],
-  payment_information_charge_amount :[31, "Payment Information Charge Amount"]
+  payment_information_first_name: "Payment Information First Name",
+  payment_information_last_name: "Payment Information Last Name",
+  payment_information_address: "Payment Information Address",
+  payment_information_city: "Payment Information City",
+  payment_information_state: "Payment Information State",
+  payment_information_zip: "Payment Information Zip",
+  payment_information_credit_card_number: "Payment Information Credit Card Number",
+  payment_information_expiration_date: "Payment Information Expiration Date",
+  payment_information_credit_card_security_code: "Payment Information Credit Card Security Code",
+  payment_information_charge_amount: "Payment Information Charge Amount"
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -56,7 +48,6 @@ document.addEventListener("DOMContentLoaded", function () {
   window.resetFields = resetFields;
   window.closeCustomPopup = closeCustomPopup;
   window.replacePlaceholders = replacePlaceholders;
-  window.showNavigateRightButton = showNavigateRightButton;
   window.openCalendly = openCalendly;
   window.fetchData = fetchData;
   window.showCustomAlert = showCustomAlert;
@@ -73,7 +64,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const DATE_DEFAULT_TIMEZONE_SET = "America/Denver";
 
   initUserData();
-
   //-----------------data related functions -------------------//
   function initUserData() {
     const storedData = localStorage.getItem('userData');
@@ -123,14 +113,10 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     Reveal.addEventListener('ready', function (event) {
-      inputFields.forEach(element => {
-        element.addEventListener(element.tagName === 'SELECT' ? 'change' : 'input', saveInputFieldData);
-      });
-
       const storedData = localStorage.getItem('userData');
       const userData = storedData ? JSON.parse(storedData) : {};
 
-      if(userData && userData["payment_status"] == 'fulfilled'){
+      if (userData && userData["payment_status"] == 'fulfilled') {
         document.getElementById("charge_credit_card").disabled = true;
       }
     });
@@ -140,21 +126,42 @@ document.addEventListener("DOMContentLoaded", function () {
       const storedData = localStorage.getItem('userData');
       const userData = storedData ? JSON.parse(storedData) : {};
 
-      //code for required user data validation
-      for (const key in slideFieldMapping) {
-        if (event.indexh > key) {
-          const fieldsToCheck = slideFieldMapping[key];
-          if (!fieldsToCheck.every(field => userData[field])) {
-            Reveal.setState({
-              indexh: key,
-              indexv: 0
+      var currentSection = event.currentSlide.closest('section');
+      var validateInputs = currentSection.querySelectorAll('.validate');
+      var navigationElementList = document.getElementsByClassName("navigate-right");
+
+      if (userData && !userData["referralDoctorId"]) {
+        userData["referralDoctorId"] = agentId;
+        userData["hadSleepStudy"] = "Needs Sleep Study";
+        localStorage.setItem('userData', JSON.stringify(userData));
+      }
+
+      if (validateInputs && validateInputs.length > 0) {
+        if (navigationElementList && navigationElementList.length > 0) {
+          navigationElementList[0].style.display = 'none';
+        }
+        validateInputs.forEach(function (input) {
+          updateNavigation();
+          if (input.tagName == 'SELECT') {
+            input.addEventListener('change', function () {
+              updateNavigation();
             });
-            return;
+          } else if (input.tagName == 'INPUT') {
+            input.addEventListener('input', function () {
+              updateNavigation();
+            });
           }
+        });
+      }
+
+      if ((currentSection.querySelector("#charge_credit_card") && !userData["payment_status"]) ||
+        (currentSection.querySelector("#calendly_div") && !userData["Sleep_Consultation_Date_Patient"])) {
+        if (navigationElementList && navigationElementList.length > 0) {
+          navigationElementList[0].style.display = 'none';
         }
       }
 
-      if (event.indexh >= 25 && checkAllMandatoryFieldsCompleted(orderMandatoryFields) && !localStorage.getItem("order")) {
+      if (checkAllMandatoryFieldsCompleted(orderMandatoryFields) && !localStorage.getItem("order")) {
         try {
           const requestOptions = {
             method: 'POST',
@@ -168,7 +175,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(response => response.json())
             .then((response) => {
               if (response.status == 500) {
-                showCustomAlert('Error',response.message,false);
+                showCustomAlert('Error', response.message, false);
               } else if (response.status == 200 && response.data) {
                 if (Object.entries(response.data.data).length > 0 && response.data.data.insuranceInfo) {
                   localStorage.setItem("order", JSON.stringify(response.data.data));
@@ -176,24 +183,20 @@ document.addEventListener("DOMContentLoaded", function () {
                   localStorage.setItem("userData", JSON.stringify(userData));
 
                   openCalendly('schedule');
-                  showCustomAlert('Success',response.message,true);
+                  showCustomAlert('Success', response.message, true);
                 }
               }
             }).catch(error => {
-              showCustomAlert('Error',error.message,false);
+              showCustomAlert('Error', error.message, false);
             });
         } catch (error) {
           console.error('Error:', error.message);
         }
-      }else if(event.indexh >= SLIDE_PAYMENT_INFORMATION){
-        checkAllMandatoryFieldsCompleted(paymentMandatoryFields)
       }
 
       if (localStorage.getItem("order") && document.getElementById('calendly_div').children.length == 0) {
         openCalendly('schedule');
       }
-
-      showNavigateRightButton(event.indexh, userData);
 
       function transformUserDataToOrderDTO(userData) {
         return {
@@ -217,27 +220,75 @@ document.addEventListener("DOMContentLoaded", function () {
           "leadType": "patient"
         };
       }
+
+      function validateInput(input) {
+        var dataType = input.getAttribute('data-type');
+        var value = input.value.trim();
+
+        switch (dataType) {
+          case 'text':
+            return value !== '';
+          case 'email':
+            return /^.+@.+\..+$/.test(value);
+          case 'tel':
+            return /^[0-9]{11}$/.test(value);
+          case 'credit-card':
+            return /^[0-9]{16}$/.test(value);
+          case 'security-code':
+            return /^[0-9]{4}$/.test(value);
+          case 'amount':
+            return parseFloat(value) > 0;
+          case 'zip':
+            let transformedInput = value.replace(/[^0-9.]+/g, "");
+
+            if (transformedInput.length > 5) {
+              transformedInput = transformedInput.slice(0, 5) + "-" + transformedInput.slice(5, 10);
+            } else if (transformedInput.length === 5) {
+              transformedInput = transformedInput.replace('-', '');
+            }
+
+            input.value = transformedInput.slice(0, 10);
+            return input.value.length >= 5;
+          case 'select':
+            return value != 'default';
+          case 'date':
+            return value !== '';
+          default:
+            return true;
+        }
+      }
+
+      function updateNavigation() {
+        var isFormValid = Array.from(validateInputs).every(function (input) {
+          return validateInput(input);
+        });
+
+        if (isFormValid) {
+          const storedData = localStorage.getItem('userData');
+          const userData = storedData ? JSON.parse(storedData) : {};
+
+          validateInputs.forEach(function (input) {
+            input.value != null && input.value != "" ? (userData[input.name] = input.value) : delete userData[input.name];
+          });
+
+          localStorage.setItem('userData', JSON.stringify(userData));
+          replacePlaceholders(userData);
+
+          document.getElementsByClassName("navigate-right")[0].style.display = 'block';
+        } else {
+          document.getElementsByClassName("navigate-right")[0].style.display = 'none';
+        }
+      }
+
     });
 
     //---------------------------------------------------------------------//
   }
 
-  function saveInputFieldData(event) {
-    const storedData = localStorage.getItem('userData');
-    const userData = storedData ? JSON.parse(storedData) : {};
-    var revealState = Reveal.getState();
-
-    event.target.value != null && event.target.value != "" ? (userData[event.target.name] = event.target.value) : delete userData[event.target.name];
-
-    localStorage.setItem('userData', JSON.stringify(userData));
-    replacePlaceholders(userData);
-    showNavigateRightButton(revealState.indexh, userData);
-  }
-
   function replaceFieldData(userData) {
     inputFields.forEach(element => {
       if (element.tagName == 'SELECT') {
-        element.value = 'default';
+        element.value = userData[element.name] || 'default';
       } else {
         element.value = userData[element.name] || "";
       }
@@ -261,7 +312,7 @@ document.addEventListener("DOMContentLoaded", function () {
     replacePlaceholders({})
     replaceFieldData({});
     Reveal.setState({
-      indexh: 3,  //3 number slide is for restart the presentation
+      indexh: 0,  //3 number slide is for restart the presentation
       indexv: 0,
       overview: false,
       paused: false
@@ -271,7 +322,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function openPersonalInformation() {
     Reveal.setState({
-      indexh: SLIDE_PERSONAL_INFORMATION,  //18 number slide is for personal information
+      indexh: 15,  //18 number slide is for personal information
       indexv: 0,
       overview: false,
       paused: false
@@ -325,16 +376,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   //---------------------------------------------//
-
-  function showNavigateRightButton(indexh, userData) {
-    const fieldsToCheck = slideFieldMapping[indexh];
-    if (fieldsToCheck) { //for slide 18,171
-      const flag = fieldsToCheck.every(field => userData[field]);
-      document.getElementsByClassName("navigate-right")[0].style.display = flag ? 'block' : 'none';
-    } else {
-      document.getElementsByClassName("navigate-right")[0].style.display = 'block';
-    }
-  }
 
 
   //-------------------------calendly reschedule/cancel events-----------------------------------//
@@ -414,12 +455,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 userData["Sleep_Consultation_Date_Patient"] = consultationDatePatient;
                 userData["Sleep_Consultation_Time_Patient"] = consultationTimePatient;
-               
+
                 localStorage.setItem('userData', JSON.stringify(userData));
                 replacePlaceholders(userData);
 
                 clearInterval(intervalId);
-                showNavigateRightButton(SLIDE_SLEEP_CONSULTATION, userData);
+                document.getElementsByClassName("navigate-right")[0].style.display = 'block';
               } else if (calendlyEvent == 'cancel') {
                 if (!response.insuranceInfo.coverageReviewAppointmentId) {
                   delete userData["Sleep_Consultation_Date_Patient"];
@@ -427,13 +468,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
                   localStorage.setItem('userData', JSON.stringify(userData));
                   replacePlaceholders(userData);
-
                   clearInterval(intervalId);
+                  document.getElementsByClassName("navigate-right")[0].style.display = 'block';
                 }
               }
-              if(Object.keys(leadData).length > 0){
+              if (Object.keys(leadData).length > 0) {
                 leadData.insuranceInfo = response.insuranceInfo;
-                localStorage.setItem('order', JSON.stringify(leadData)); 
+                localStorage.setItem('order', JSON.stringify(leadData));
               }
             }
           })
@@ -470,23 +511,35 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function gotoCalendlyWidget() {
-    Reveal.setState({
-      indexh: 171,  //go to calendly widget slide
-      indexv: 0,
-      overview: false,
-      paused: false
-    });
+    const calendlyDivElement = document.getElementById("calendly_div");
+    if (calendlyDivElement) {
+      const sectionElements = document.querySelectorAll('section');
+
+      for (let i = 0; i < sectionElements.length; i++) {
+        const sectionElement = sectionElements[i];
+
+        if (sectionElement.contains(calendlyDivElement)) {
+          Reveal.setState({
+            indexh: i,  //go to calendly widget slide
+            indexv: 0,
+            overview: false,
+            paused: false
+          });
+          break;
+        }
+      }
+    }
   }
   //----------------------------------------------------------------------------------------------//
 
   //------------------ alert pop up-------------------------------------------//
-  function showCustomAlert(heading,message,success) {
+  function showCustomAlert(heading, message, success) {
     const alertBox = document.getElementById('custom-alert');
     document.getElementById('alert-heading').innerText = heading;
     document.getElementById('alert-message').innerText = message;
     alertBox.style.backgroundColor = success ? '#90EE90' : '#f8d7da';
     alertBox.style.display = 'block';
-    }
+  }
 
   function closeAlert() {
     document.getElementById('custom-alert').style.display = 'none';
@@ -504,7 +557,7 @@ document.addEventListener("DOMContentLoaded", function () {
       try {
         var button = document.getElementById("charge_credit_card");
         button.disabled = true;
-    
+
         var loader = document.createElement("div");
         loader.id = "loader";
         loader.innerHTML = "Processing,Please Wait...";
@@ -522,20 +575,21 @@ document.addEventListener("DOMContentLoaded", function () {
           .then(response => response.json())
           .then((response) => {
             if (response.status == 500) {
-              showCustomAlert('Error',response.message,false);
+              showCustomAlert('Error', response.message, false);
               button.disabled = false;
             } else if (response.status == 200 && response.data) {
               if (Object.entries(response.data.data).length > 0 && Object.entries(response.data.data.paymentInfo).length > 0) {
                 openCalendly('schedule');
                 localStorage.setItem("order", JSON.stringify(response.data.data));
-                showCustomAlert('Success',response.message,true);
+                showCustomAlert('Success', response.message, true);
                 userData["payment_status"] = "fulfilled";
                 localStorage.setItem("userData", JSON.stringify(userData));
+                document.getElementsByClassName("navigate-right")[0].style.display = 'block';
               }
             }
             loader.parentNode.removeChild(loader);
           }).catch(error => {
-            showCustomAlert('Error',error.message,false);
+            showCustomAlert('Error', error.message, false);
             button.disabled = false;
             loader.parentNode.removeChild(loader);
           });
@@ -554,12 +608,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const missingFields = Object.keys(mandatoryFields).filter(key => !userData[key]);
 
     if (missingFields.length > 0) {
-      const warnings = missingFields.map(field => `${mandatoryFields[field][1]} is missing.\n`);
-      Reveal.setState({
-        indexh: mandatoryFields[missingFields[0]][0],
-        indexv: 0
-      });
-      showCustomAlert('Error',warnings.join(' '),false);
       return false;
     }
     return true;
@@ -592,52 +640,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   //----------------------------------------------------------------------------//
-
-  addValidationToZipCode("personal_information_zipcode");
-  addValidationToZipCode("payment_information_zip");
-  
-  function addValidationToZipCode(elementId){
-    document.getElementById(elementId).addEventListener("input", function(event) {
-      const formControl = event.target;
-      let transformedInput = formControl.value.replace(/[^0-9.]+/g, "");
-  
-      if (transformedInput.length > 5) {
-          transformedInput = transformedInput.slice(0, 5) + "-" + transformedInput.slice(5, 10);
-      } else if (transformedInput.length === 5) {
-          transformedInput = transformedInput.replace('-', '');
-      }
-  
-      formControl.value = transformedInput.slice(0, 10);
-    });
-  }
-
-
-  document.getElementById("personal_information_mobile_phone").addEventListener("input", function(event) {
-    const formControl = event.target;
-    let transformedInput = formControl.value.replace(/[^0-9]+/g, "");
-
-    if (transformedInput.length > 11) {
-        transformedInput = transformedInput.slice(0, 11);
-    }
-    formControl.value = transformedInput;
-});
-
-document.getElementById("personal_information_email").addEventListener("input", function(event) {
-  const formControl = event.target;
-  const transformedInput = formControl.value.trim();
-
-  // Simple email format validation using a regular expression
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  if (emailRegex.test(transformedInput)) {
-      formControl.classList.remove("invalid");
-      formControl.classList.add("valid");
-  } else {
-      formControl.classList.remove("valid");
-      formControl.classList.add("invalid");
-  }
-
-});
 
 });
 
