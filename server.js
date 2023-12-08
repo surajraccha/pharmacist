@@ -287,17 +287,22 @@ function processFile() {
 
     setAttributesById('new_patient', 'onclick', 'openNewPatient()');
     setAttributesById('new_patient', 'class', 'btn btn-primary btn-sm');
+    setAttributesById('new_patient', 'style', 'font-weight :bold');
 
     setAttributesById('personal_information', 'onclick', 'openPersonalInformation()');
     setAttributesById('personal_information', 'class', 'btn btn-primary btn-sm');
+    setAttributesById('personal_information', 'style', 'font-weight :bold');
 
     setAttributesById('calendly_reschedule', 'onclick', "openCalendly('reschedule')");
     setAttributesById('calendly_reschedule', 'class', 'btn btn-primary btn-sm');
+    setAttributesById('calendly_reschedule', 'style', 'font-weight :bold');
 
     setAttributesById('calendly_cancel', 'onclick', "openCalendly('cancel')");
     setAttributesById('calendly_cancel', 'class', 'btn btn-primary btn-sm');
+    setAttributesById('calendly_cancel', 'style', 'font-weight :bold');
 
     setAttributesById('charge_credit_card', 'onclick', 'chargeCreditCard()');
+    setAttributesById('charge_credit_card', 'style', 'font-weight :bold');
 
 
     setAttributesById('payment_information_credit_card_number', 'oninput', "this.value = this.value.replace(/[^0-9.]/g, '');");
